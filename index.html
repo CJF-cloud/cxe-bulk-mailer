@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CXE Bulk Mailer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --paper:#eef2f4; --card:#ffffff; --ink:#17242e; --ink-soft:#5b6b76;
+    --line:#d8dfe4; --accent:#0097a8; --accent-deep:#00727f;
+    --guard:#e8a13d; --live:#d64545; --live-deep:#b23434; --ok:#2e8b57;
+    --mono:'Source Code Pro',monospace; --sans:'Source Sans 3','Source Sans Pro',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);
+       font-size:14.5px;line-height:1.5;padding-bottom:100px}
+
+  /* ---------- header ---------- */
+  header{background:var(--ink);color:#fff;padding:14px 22px;display:flex;
+         align-items:center;gap:16px;flex-wrap:wrap}
+  .brand{font-weight:700;font-size:16px}
+  .brand .stamp{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--paper);
+    background:var(--accent);padding:2px 7px;border-radius:3px;margin-left:8px;
+    letter-spacing:.12em;vertical-align:2px}
+  .spacer{flex:1}
+  .gmail-chip{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:#c6d2da}
+  .dot{width:9px;height:9px;border-radius:50%;background:#6b7a84;flex:none}
+  .dot.on{background:#4cd471}
+  button.chipbtn{border:1px solid #4a5b66;background:transparent;color:#fff;border-radius:6px;
+    padding:7px 14px;font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer}
+  button.chipbtn:hover{border-color:var(--accent);color:var(--accent)}
+  button.chipbtn.cta{background:var(--accent);border-color:var(--accent)}
+  button.chipbtn.cta:hover{background:var(--accent-deep);color:#fff}
+
+  /* ---------- setup banner ---------- */
+  .banner{max-width:1120px;margin:18px auto -4px;padding:14px 18px;border-radius:8px;
+    background:#fff7e8;border:1px solid #ecd7ab;color:#6b5322;font-size:13px}
+  .banner code{font-family:var(--mono);background:#fff;padding:1px 5px;border-radius:3px;border:1px solid #ecd7ab}
+  .banner b{color:#4a3a15}
+
+  /* ---------- layout ---------- */
+  main{max-width:1120px;margin:22px auto;padding:0 18px;display:grid;
+       grid-template-columns:minmax(340px,460px) 1fr;gap:18px}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
+  .card h2{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+           color:var(--ink-soft);margin-bottom:14px}
+  .full{grid-column:1 / -1}
+
+  label{display:block;font-weight:600;font-size:13px;margin:14px 0 5px}
+  label:first-of-type{margin-top:0}
+  label small{font-weight:400;color:var(--ink-soft)}
+  input[type=text],input[type=email],select,textarea{
+    width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 11px;
+    font-family:var(--sans);font-size:14px;color:var(--ink);background:#fff}
+  textarea{min-height:200px;resize:vertical;line-height:1.5}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:5px}
+  .hint code{font-family:var(--mono);background:var(--paper);padding:1px 5px;border-radius:3px}
+
+  /* ---------- toolbar / buttons ---------- */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 13px;
+    font-family:var(--sans);font-weight:600;font-size:13px;color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .btn.solid{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.solid:hover{background:var(--accent-deep)}
+  .btn.ghost-danger:hover{border-color:var(--live);color:var(--live)}
+  .btn-link{background:none;border:none;color:var(--accent-deep);font-weight:600;
+            cursor:pointer;font-size:13px;font-family:var(--sans);padding:0}
+  .btn-link:hover{text-decoration:underline}
+
+  /* ---------- drop zone ---------- */
+  .drop{border:2px dashed var(--line);border-radius:8px;padding:22px;text-align:center;
+        color:var(--ink-soft);cursor:pointer;transition:border-color .2s, background .2s;margin-bottom:12px}
+  .drop.over{border-color:var(--accent);background:#f0fafb}
+  .drop b{color:var(--ink)}
+
+  /* ---------- table ---------- */
+  .tablewrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--ink-soft);text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap}
+  td{padding:0;border-bottom:1px solid var(--line);vertical-align:top}
+  td.static{padding:7px 8px}
+  td input{border:none;border-radius:0;padding:8px;font-size:13px;background:transparent;min-width:120px}
+  td input:focus{outline:2px solid var(--accent);outline-offset:-2px}
+  td.emailcol input{font-family:var(--mono);font-size:12.5px;min-width:220px}
+  tr.bad{background:#fdf0f0}
+  tr.excluded td{opacity:.45}
+  tr.excluded td.chkcol, tr.excluded td.static.chkcol{opacity:1}
+  tr.filterrow td{background:#f7fafb;border-bottom:2px solid var(--line);padding:4px 4px}
+  tr.filterrow input{font-family:var(--sans);font-size:12.5px;border:1px solid var(--line);
+    border-radius:5px;padding:5px 8px;min-width:90px;width:100%;background:#fff}
+  tr.filterrow input::placeholder{color:#9aa8b1}
+  td.chkcol{width:34px;text-align:center;padding:9px 4px 0}
+  th.chkcol{width:34px;text-align:center}
+  input[type=checkbox].rowchk, #chkAll{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
+  .rowdel{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:7px 9px}
+  .rowdel:hover{color:var(--live)}
+  .issue{color:var(--live);font-size:11.5px;font-weight:600;padding:0 8px 6px}
+  .cc-note{font-family:var(--mono);font-size:11px;color:var(--ink-soft);padding:0 8px 6px}
+  .counts{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+  .counts b{color:var(--ink)}
+  .empty{color:var(--ink-soft);text-align:center;padding:32px 10px;font-size:13px}
+  .result-ok{color:var(--ok);font-weight:600}
+  .result-bad{color:var(--live);font-weight:600}
+  .result-dry{color:var(--guard);font-weight:600}
+  .head-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+  .head-row h2{margin-bottom:0}
+
+  /* ---------- send bar ---------- */
+  .sendbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;
+           padding:12px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+           box-shadow:0 -4px 14px rgba(0,0,0,.18);transition:background .3s;z-index:20}
+  .sendbar.live{background:repeating-linear-gradient(-45deg,var(--live-deep),var(--live-deep) 14px,var(--live) 14px,var(--live) 28px)}
+  .guard{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .guard input{position:absolute;opacity:0}
+  .switch{width:46px;height:24px;border-radius:12px;background:var(--guard);position:relative;transition:background .25s;flex:none}
+  .switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
+                 background:#fff;transition:left .25s}
+  .sendbar.live .switch{background:#7c1f1f}
+  .sendbar.live .switch::after{left:25px}
+  .guard-label{font-family:var(--mono);font-size:12px;letter-spacing:.08em}
+  .guard-label b{display:block;font-size:13px;letter-spacing:.02em;font-family:var(--sans)}
+  .send-summary{font-family:var(--mono);font-size:12px;color:#e8eef2;flex:1;min-width:180px}
+  button.primary{border:none;border-radius:6px;padding:11px 22px;font-weight:700;font-size:14px;
+    font-family:var(--sans);cursor:pointer;background:var(--accent);color:#fff}
+  button.primary:hover{background:var(--accent-deep)}
+  .sendbar.live button.primary{background:#fff;color:var(--live-deep)}
+  button.primary:disabled{opacity:.45;cursor:not-allowed}
+
+  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--ink);
+         color:#fff;padding:11px 18px;border-radius:6px;font-size:13.5px;z-index:60;
+         box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:90vw}
+  .toast.err{background:var(--live-deep)}
+  progress{width:160px;height:8px}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">CXE Bulk Mailer <span class="stamp">FLIPP INTERNAL</span></div>
+  <div class="spacer"></div>
+  <div class="gmail-chip">
+    <span class="dot" id="gmailDot"></span>
+    <span id="gmailStatus">Gmail not connected</span>
+    <button class="chipbtn cta" id="connectBtn">Connect Gmail</button>
+    <button class="chipbtn" id="disconnectBtn" style="display:none">Disconnect</button>
+  </div>
+</header>
+
+<div class="banner" id="setupBanner" style="display:none">
+  <b>One-time owner setup needed:</b> this page has no Google <code>CLIENT_ID</code> yet, so
+  "Connect Gmail" won't work. Open the file, paste your OAuth Client ID into the
+  <code>CLIENT_ID</code> constant at the top of the script, and redeploy.
+  Full steps are in the README next to this file.
+</div>
+
+<main>
+  <!-- ============ CONTACTS ============ -->
+  <section class="card full">
+    <div class="head-row">
+      <h2>1 · Contact list</h2>
+      <span class="counts" id="listCounts"></span>
+      <span class="spacer"></span>
+      <span class="counts" id="savedAs"></span>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn solid" id="uploadBtn">📄 Import .xlsx / .csv</button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+      <button class="btn" id="templateBtn">Download template</button>
+      <button class="btn" id="exportBtn">Export list as .xlsx</button>
+      <span style="flex:1"></span>
+      <select id="savedLists" style="width:auto;min-width:170px"><option value="">Saved lists…</option></select>
+      <button class="btn" id="saveListBtn">💾 Save list</button>
+      <button class="btn ghost-danger" id="deleteListBtn">Delete saved</button>
+    </div>
+
+    <div class="drop" id="dropZone">
+      Drop an <b>.xlsx</b> or <b>.csv</b> here (or click) — columns: <b>Email(s)</b>, <b>Name</b>, <b>Notes</b>.<br>
+      Comma-separated addresses on one row = one email (first is To, rest are CC — they see each other).
+      Separate rows = separate emails, recipients never see each other.
+    </div>
+
+    <div class="tablewrap" id="contactTableWrap"></div>
+    <div class="toolbar" style="margin:12px 0 0">
+      <button class="btn" id="addRowBtn">+ Add row</button>
+      <button class="btn" id="clearFiltersBtn">Clear filters</button>
+      <span style="flex:1"></span>
+      <button class="btn ghost-danger" id="clearBtn">Clear list</button>
+    </div>
+    <div class="hint" style="margin-top:8px">Filters (the 🔍 row) only change what&rsquo;s <i>shown</i> — the checkboxes decide who actually
+      gets the email. Uncheck anyone who shouldn&rsquo;t receive this send; the header checkbox toggles all shown rows at once.</div>
+  </section>
+
+  <!-- ============ COMPOSE ============ -->
+  <section class="card">
+    <h2>2 · Compose</h2>
+    <label for="replyTo">Reply-To <small>(optional — replies go here instead of your inbox)</small></label>
+    <input type="email" id="replyTo" placeholder="e.g. cxe-team@flipp.com">
+    <label for="subject">Subject</label>
+    <input type="text" id="subject" placeholder="e.g. Heads up, {{name}} — flyer deadline moved">
+    <label for="body">Message</label>
+    <textarea id="body" placeholder="Write like you'd write an email. Line breaks are kept."></textarea>
+    <div class="hint">Use <code>{{name}}</code> anywhere in the subject or body — it fills in from the Name
+      column, or "there" if blank. Emails send from the Gmail account you connect (top right).</div>
+  </section>
+
+  <!-- ============ RESULTS / LOG ============ -->
+  <section class="card">
+    <div class="head-row">
+      <h2>3 · Results & history</h2>
+      <span class="spacer"></span>
+      <button class="btn-link" id="clearLogBtn">Clear history</button>
+    </div>
+    <div id="resultsBody"><div class="empty">Dry-run and send results show up here.</div></div>
+    <div class="head-row" style="margin-top:18px"><h2 style="font-size:11px">Recent sends (this browser)</h2></div>
+    <div id="logBody"><div class="empty">No sends yet.</div></div>
+  </section>
+</main>
+
+<!-- ============ SEND BAR ============ -->
+<div class="sendbar" id="sendbar">
+  <label class="guard">
+    <input type="checkbox" id="dryToggle" checked>
+    <span class="switch" aria-hidden="true"></span>
+    <span class="guard-label" id="guardLabel"><b>Dry run ON</b>NOTHING WILL SEND</span>
+  </label>
+  <div class="send-summary" id="sendSummary">—</div>
+  <progress id="sendProgress" max="100" value="0" style="display:none"></progress>
+  <button class="primary" id="sendBtn" disabled>Run dry run</button>
+</div>
+
+<script>
+/* ==================================================================
+ * OWNER SETUP — the only thing you edit.
+ * 1. console.cloud.google.com → create a project (e.g. "CXE Bulk Mailer")
+ * 2. APIs & Services → Library → enable "Gmail API"
+ * 3. OAuth consent screen → User type: INTERNAL (Flipp Workspace) → save
+ * 4. Credentials → Create credentials → OAuth client ID → Web application
+ *    Authorized JavaScript origins: your GitHub Pages origin, e.g.
+ *      https://cjf-cloud.github.io
+ *    (add http://localhost:8000 too if you want to test locally)
+ * 5. Paste the client ID below and push to GitHub. Done — the whole
+ *    team uses this one ID; each person authorizes their own Gmail.
+ * ================================================================== */
+var CLIENT_ID = '526181065970-a2hslh00c4g8d8mob85f876aeoaaomeb.apps.googleusercontent.com';
+
+var SCOPES = 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/userinfo.email';
+var DAILY_LIMIT = 1500;        // Workspace external-recipient quota per user / 24h
+var SEND_DELAY_MS = 700;       // gentle pacing between API calls
+
+/* ---------------- state ---------------- */
+var state = {
+  rows: [],                    // {emails:'a@x.com, b@x.com', name:'', notes:'', include:true}
+  filters: { emails:'', name:'', notes:'' },
+  listName: '',
+  token: null, tokenExp: 0, userEmail: '',
+  busy: false, tokenClient: null
+};
+
+/* ---------------- tiny helpers ---------------- */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg, isErr){
+  var t=document.createElement('div'); t.className='toast'+(isErr?' err':''); t.textContent=msg;
+  document.body.appendChild(t); setTimeout(function(){ t.remove(); }, isErr?7000:3500);
+}
+function isValidEmail(e){ return /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(e); }
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function store(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+function load(key, fallback){ try{ var v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+
+/* ---------------- filters ---------------- */
+function rowVisible(r){
+  var f = state.filters;
+  return ['emails','name','notes'].every(function(k){
+    if(!f[k]) return true;
+    return String(r[k]||'').toLowerCase().indexOf(f[k].toLowerCase()) !== -1;
+  });
+}
+function filtersActive(){ var f=state.filters; return !!(f.emails||f.name||f.notes); }
+
+/* ---------------- parse INCLUDED rows into a manifest ---------------- */
+function manifest(){
+  var seen={}, dup=0, addr=0, out=[];
+  state.rows.forEach(function(r, i){
+    if(r.include===false) return;               // unchecked rows never send
+    var raw = String(r.emails||'').trim();
+    if(!raw) return;
+    var emails = raw.split(',').map(function(e){return e.trim();}).filter(String);
+    var issues = [];
+    emails.forEach(function(e){
+      if(!isValidEmail(e)) issues.push('Invalid: '+e);
+      var k=e.toLowerCase(); if(seen[k]) dup++; seen[k]=true;
+    });
+    addr += emails.length;
+    out.push({ idx:i, to:emails[0], cc:emails.slice(1), name:String(r.name||'').trim(), issues:issues });
+  });
+  return { rows:out, emailCount:out.length, addressCount:addr, duplicates:dup,
+           invalid:out.filter(function(r){return r.issues.length;}).length };
+}
+
+/* ---------------- contact table ---------------- */
+function renderTable(){
+  var wrap = $('contactTableWrap');
+  if(!state.rows.length){
+    wrap.innerHTML = '<div class="empty">No contacts yet — import a file, load a saved list, or add rows by hand.</div>';
+    updateCounts(); updateSendBar(); return;
+  }
+  var m = manifest();
+  var byIdx = {}; m.rows.forEach(function(r){ byIdx[r.idx]=r; });
+  var f = state.filters;
+  var visIdx = [];
+  state.rows.forEach(function(r,i){ if(rowVisible(r)) visIdx.push(i); });
+  var allVisChecked = visIdx.length && visIdx.every(function(i){ return state.rows[i].include!==false; });
+
+  var html = '<table><thead>'+
+    '<tr><th class="chkcol"><input type="checkbox" id="chkAll" title="Include / exclude all shown rows"'+(allVisChecked?' checked':'')+'></th>'+
+    '<th style="width:34px">#</th><th>Email(s) — first is To, rest are CC</th><th>Name</th><th>Notes</th><th></th></tr>'+
+    '<tr class="filterrow"><td class="chkcol" title="Filters only change what\u2019s shown — the checkboxes decide who gets the email">🔍</td><td></td>'+
+    '<td><input id="fEmails" placeholder="Filter emails… (e.g. @acme.com)" value="'+esc(f.emails)+'"></td>'+
+    '<td><input id="fName" placeholder="Filter names…" value="'+esc(f.name)+'"></td>'+
+    '<td><input id="fNotes" placeholder="Filter notes…" value="'+esc(f.notes)+'"></td>'+
+    '<td></td></tr></thead><tbody>';
+
+  var shown = 0;
+  state.rows.forEach(function(r, i){
+    if(!rowVisible(r)) return;
+    shown++;
+    var mr = byIdx[i];                       // undefined when excluded or empty
+    var bad = mr && mr.issues.length;
+    var excluded = r.include===false;
+    html += '<tr class="'+(bad?'bad ':'')+(excluded?'excluded':'')+'">'+
+      '<td class="static chkcol"><input type="checkbox" class="rowchk" data-chk="'+i+'"'+(excluded?'':' checked')+' title="'+(excluded?'Excluded — will NOT receive this email':'Included in the send')+'"></td>'+
+      '<td class="static" style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">'+(i+1)+'</td>'+
+      '<td class="emailcol"><input data-i="'+i+'" data-f="emails" value="'+esc(r.emails)+'" placeholder="a@acme.com, b@acme.com">'+
+        (bad?'<div class="issue">'+esc(mr.issues.join('; '))+'</div>':'')+
+        (mr && mr.cc.length?'<div class="cc-note">1 To + '+mr.cc.length+' CC — same thread</div>':'')+'</td>'+
+      '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="{{name}}"></td>'+
+      '<td><input data-i="'+i+'" data-f="notes" value="'+esc(r.notes)+'" placeholder="optional"></td>'+
+      '<td class="static"><button class="rowdel" data-del="'+i+'" title="Remove row">✕</button></td></tr>';
+  });
+  if(!shown){
+    html += '<tr><td colspan="6" class="static"><div class="empty">No rows match the filters. '+
+      '<button class="btn-link" id="noMatchClear">Clear filters</button></div></td></tr>';
+  }
+  wrap.innerHTML = html + '</tbody></table>';
+
+  // wire filter inputs (re-created on each render)
+  [['fEmails','emails'],['fName','name'],['fNotes','notes']].forEach(function(p){
+    var el = $(p[0]); if(!el) return;
+    el.addEventListener('input', function(){
+      state.filters[p[1]] = this.value;
+      var pos = this.selectionStart, id = p[0];
+      renderTable();
+      var again = $(id); if(again){ again.focus(); again.setSelectionRange(pos,pos); }
+    });
+  });
+  var chkAll = $('chkAll');
+  if(chkAll) chkAll.addEventListener('change', function(){
+    var on = this.checked;
+    state.rows.forEach(function(r){ if(rowVisible(r)) r.include = on; });
+    renderTable();
+  });
+  var nmc = $('noMatchClear');
+  if(nmc) nmc.addEventListener('click', function(){ state.filters={emails:'',name:'',notes:''}; renderTable(); });
+
+  updateCounts(); updateSendBar();
+}
+
+function updateCounts(){
+  var m = manifest();
+  var total = state.rows.filter(function(r){ return String(r.emails||'').trim(); }).length;
+  var excluded = total - m.emailCount;
+  var hidden = state.rows.filter(function(r){ return !rowVisible(r); }).length;
+  $('listCounts').innerHTML = total
+    ? '<b>'+m.emailCount+'</b> of '+total+' emails selected · <b>'+m.addressCount+'</b> addresses'+
+      (excluded?' · <span class="result-dry">'+excluded+' excluded</span>':'')+
+      (hidden?' · '+hidden+' hidden by filters':'')+
+      (m.duplicates?' · <span class="result-bad">'+m.duplicates+' duplicate</span>':'')+
+      (m.invalid?' · <span class="result-bad">'+m.invalid+' invalid</span>':'')
+    : '';
+  $('savedAs').textContent = state.listName ? 'list: '+state.listName : '';
+}
+
+$('contactTableWrap').addEventListener('input', function(e){
+  var t=e.target; if(!t.dataset || t.dataset.i===undefined) return;
+  state.rows[+t.dataset.i][t.dataset.f] = t.value;
+  // live-validate without rebuilding (keeps focus); counts + bar only
+  updateCounts(); updateSendBar();
+});
+$('contactTableWrap').addEventListener('change', function(e){
+  var t = e.target;
+  if(t.classList && t.classList.contains('rowchk')){
+    state.rows[+t.dataset.chk].include = t.checked;
+  }
+  if(t.id==='fEmails'||t.id==='fName'||t.id==='fNotes') return; // filters re-render themselves
+  renderTable();
+});
+$('contactTableWrap').addEventListener('click', function(e){
+  var d = e.target.dataset && e.target.dataset.del;
+  if(d!==undefined && d!==null && d!==''){ state.rows.splice(+d,1); renderTable(); }
+});
+$('addRowBtn').onclick = function(){ state.rows.push({emails:'',name:'',notes:'',include:true}); renderTable();
+  var ins=$('contactTableWrap').querySelectorAll('input[data-f=emails]'); ins[ins.length-1] && ins[ins.length-1].focus(); };
+$('clearFiltersBtn').onclick = function(){ state.filters={emails:'',name:'',notes:''}; renderTable(); };
+$('clearBtn').onclick = function(){
+  if(state.rows.length && !confirm('Clear the current list? (Saved lists are untouched.)')) return;
+  state.rows=[]; state.listName=''; renderTable();
+};
+
+/* ---------------- import / export ---------------- */
+function handleFile(file){
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var wb = XLSX.read(ev.target.result, {type:'array'});
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var json = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if(!json.length){ toast('That file looks empty.', true); return; }
+      // find columns by header, else assume A/B/C
+      var head = json[0].map(function(h){ return String(h).toLowerCase(); });
+      var eCol = head.findIndex(function(h){ return /email/.test(h); });
+      var nCol = head.findIndex(function(h){ return /name/.test(h); });
+      var oCol = head.findIndex(function(h){ return /note/.test(h); });
+      var start = (eCol>=0||nCol>=0) ? 1 : 0;
+      if(eCol<0) eCol=0; if(nCol<0) nCol=1; if(oCol<0) oCol=2;
+      var rows=[];
+      for(var i=start;i<json.length;i++){
+        var em = String(json[i][eCol]||'').trim();
+        if(!em) continue;
+        rows.push({ emails:em, name:String(json[i][nCol]||'').trim(), notes:String(json[i][oCol]||'').trim(), include:true });
+      }
+      if(!rows.length){ toast('No rows with emails found. Is the Email column filled?', true); return; }
+      state.rows = rows; state.listName = file.name.replace(/\.(xlsx|xls|csv)$/i,'');
+      renderTable();
+      toast('Imported '+rows.length+' rows from '+file.name+'. Review, then Save list if you want to keep it.');
+    }catch(err){ toast('Couldn\u2019t read that file: '+err.message, true); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+$('uploadBtn').onclick = function(){ $('fileInput').click(); };
+$('fileInput').addEventListener('change', function(){ if(this.files[0]) handleFile(this.files[0]); this.value=''; });
+var dz=$('dropZone');
+dz.onclick = function(){ $('fileInput').click(); };
+['dragover','dragenter'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.add('over'); }); });
+['dragleave','drop'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.remove('over'); }); });
+dz.addEventListener('drop', function(e){ if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+$('templateBtn').onclick = function(){
+  var ws = XLSX.utils.aoa_to_sheet([
+    ['Email(s)','Name','Notes'],
+    ['buyer@acme.com','Sam',''],
+    ['a@acme.com, b@acme.com, c@acme.com','Acme team','These 3 get ONE email and see each other'],
+    ['solo@retailer.com','Priya','Separate row = separate email']
+  ]);
+  ws['!cols']=[{wch:42},{wch:16},{wch:44}];
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+  XLSX.writeFile(wb, 'BulkMailer_Template.xlsx');
+};
+$('exportBtn').onclick = function(){
+  if(!state.rows.length){ toast('Nothing to export yet.', true); return; }
+  var aoa = [['Email(s)','Name','Notes']].concat(state.rows.map(function(r){ return [r.emails,r.name,r.notes]; }));
+  var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:42},{wch:16},{wch:44}];
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
+  XLSX.writeFile(wb, (state.listName||'contact-list')+'.xlsx');
+};
+
+/* ---------------- saved lists (this browser) ---------------- */
+function refreshSaved(){
+  var lists = load('bm_lists', {});
+  var sel = $('savedLists');
+  sel.innerHTML = '<option value="">Saved lists…</option>' + Object.keys(lists).sort().map(function(n){
+    return '<option value="'+esc(n)+'">'+esc(n)+' ('+lists[n].length+')</option>';
+  }).join('');
+}
+$('saveListBtn').onclick = function(){
+  if(!state.rows.length){ toast('Nothing to save yet.', true); return; }
+  var name = prompt('Save this list as:', state.listName || 'My list');
+  if(!name) return;
+  var lists = load('bm_lists', {});
+  lists[name.trim()] = state.rows;
+  store('bm_lists', lists); state.listName = name.trim();
+  refreshSaved(); updateCounts();
+  toast('Saved "'+name.trim()+'" in this browser. (Saved lists live on this computer only — export .xlsx to share.)');
+};
+$('savedLists').addEventListener('change', function(){
+  if(!this.value) return;
+  var lists = load('bm_lists', {});
+  if(lists[this.value]){ state.rows = JSON.parse(JSON.stringify(lists[this.value])); state.listName=this.value; renderTable(); }
+  this.value='';
+});
+$('deleteListBtn').onclick = function(){
+  var lists = load('bm_lists', {});
+  var names = Object.keys(lists);
+  if(!names.length){ toast('No saved lists to delete.', true); return; }
+  var name = prompt('Delete which saved list?\n\n'+names.join('\n'));
+  if(!name || !lists[name.trim()]) return;
+  delete lists[name.trim()]; store('bm_lists', lists); refreshSaved();
+  toast('Deleted "'+name.trim()+'".');
+};
+
+/* ---------------- Gmail auth (Google Identity Services) ---------------- */
+function gisReady(){ return typeof google!=='undefined' && google.accounts && google.accounts.oauth2; }
+function initAuth(){
+  if(CLIENT_ID.indexOf('PASTE_')===0){ $('setupBanner').style.display='block'; return; }
+  if(!gisReady()){ setTimeout(initAuth, 300); return; }
+  state.tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: function(resp){
+      if(resp.error){ toast('Google sign-in failed: '+resp.error, true); return; }
+      state.token = resp.access_token;
+      state.tokenExp = Date.now() + (resp.expires_in-60)*1000;
+      fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+state.token}})
+        .then(function(r){ return r.json(); })
+        .then(function(u){ state.userEmail = u.email || 'connected'; renderAuth(); updateSendBar(); })
+        .catch(function(){ state.userEmail='connected'; renderAuth(); updateSendBar(); });
+    }
+  });
+}
+function renderAuth(){
+  var on = !!state.token && Date.now() < state.tokenExp;
+  $('gmailDot').classList.toggle('on', on);
+  $('gmailStatus').textContent = on ? ('Sending as '+state.userEmail) : 'Gmail not connected';
+  $('connectBtn').style.display = on ? 'none' : '';
+  $('disconnectBtn').style.display = on ? '' : 'none';
+}
+function ensureToken(){
+  return new Promise(function(res, rej){
+    if(state.token && Date.now() < state.tokenExp) return res(state.token);
+    if(!state.tokenClient) return rej(new Error('Connect Gmail first (top right).'));
+    var orig = state.tokenClient.callback;
+    // temporary wrapper to resolve this promise on next grant
+    state.tokenClient.callback = function(resp){
+      orig(resp);
+      state.tokenClient.callback = orig;
+      resp.error ? rej(new Error(resp.error)) : res(resp.access_token);
+    };
+    state.tokenClient.requestAccessToken({ prompt: state.token ? '' : 'consent' });
+  });
+}
+$('connectBtn').onclick = function(){
+  if(CLIENT_ID.indexOf('PASTE_')===0){ toast('No CLIENT_ID configured yet — see the yellow banner.', true); return; }
+  ensureToken().catch(function(e){ toast(e.message, true); });
+};
+$('disconnectBtn').onclick = function(){
+  if(state.token){ try{ google.accounts.oauth2.revoke(state.token, function(){}); }catch(e){} }
+  state.token=null; state.tokenExp=0; state.userEmail='';
+  renderAuth(); updateSendBar();
+};
+
+/* ---------------- build + send MIME via Gmail API ---------------- */
+function b64url(bytes){
+  var bin=''; bytes.forEach(function(b){ bin+=String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function encodeHeader(s){ // RFC 2047 for non-ASCII subjects
+  return /^[\x00-\x7F]*$/.test(s) ? s : '=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
+}
+function buildMime(r, subject, bodyText, replyTo){
+  var html = esc(bodyText).replace(/\r?\n/g,'<br>');
+  var lines = [
+    'To: '+r.to,
+    r.cc.length ? 'Cc: '+r.cc.join(', ') : null,
+    replyTo ? 'Reply-To: '+replyTo : null,
+    'Subject: '+encodeHeader(subject),
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5">'+html+'</div>'
+  ].filter(function(l){ return l!==null; });
+  return b64url(new TextEncoder().encode(lines.join('\r\n')));
+}
+function mergeText(t, r){ return String(t).replace(/\{\{\s*name\s*\}\}/gi, r.name || 'there'); }
+
+function sentLast24h(){
+  var log = load('bm_log', []);
+  var cutoff = Date.now() - 24*3600*1000;
+  return log.filter(function(e){ return !e.dry && e.ts > cutoff && e.by === state.userEmail; })
+            .reduce(function(s,e){ return s + (e.addresses||0); }, 0);
+}
+
+async function doSend(){
+  var m = manifest();
+  var dry = $('dryToggle').checked;
+  var subject = $('subject').value.trim();
+  var body = $('body').value;
+  var replyTo = $('replyTo').value.trim();
+
+  if(!m.emailCount) return toast('No recipients loaded.', true);
+  if(m.invalid) return toast('Fix the '+m.invalid+' invalid row(s) highlighted in red first.', true);
+  if(!subject) return toast('Give the email a subject.', true);
+  if(!body.trim()) return toast('The message body is empty.', true);
+  if(replyTo && !isValidEmail(replyTo)) return toast('Reply-To doesn\u2019t look like a valid email.', true);
+
+  if(dry){
+    renderResults(m.rows.map(function(r){ return {to:r.to, cc:r.cc, status:'DRY RUN — not sent',
+      preview: mergeText(subject, r)}; }), true);
+    logSend(true, m);
+    toast('Dry run complete — '+m.emailCount+' emails would send ('+m.addressCount+' addresses). Nothing was sent.');
+    return;
+  }
+
+  // live send
+  try{ await ensureToken(); }catch(e){ return toast(e.message, true); }
+  var used = sentLast24h();
+  if(used + m.addressCount > DAILY_LIMIT){
+    return toast('Quota check: this send needs '+m.addressCount+' recipient slots but you\u2019ve used ~'+used+
+      ' of '+DAILY_LIMIT+' in the last 24h (tracked in this browser). Split the list or wait.', true);
+  }
+
+  state.busy = true; updateSendBar();
+  var prog=$('sendProgress'); prog.style.display=''; prog.max=m.rows.length; prog.value=0;
+  var results=[], sent=0, failed=0;
+
+  for(var i=0;i<m.rows.length;i++){
+    var r=m.rows[i];
+    try{
+      var raw = buildMime(r, mergeText(subject,r), mergeText(body,r), replyTo);
+      var resp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+        method:'POST',
+        headers:{ Authorization:'Bearer '+state.token, 'Content-Type':'application/json' },
+        body: JSON.stringify({ raw: raw })
+      });
+      if(!resp.ok){
+        var err = await resp.json().catch(function(){ return {}; });
+        throw new Error((err.error && err.error.message) || ('HTTP '+resp.status));
+      }
+      sent++; results.push({to:r.to, cc:r.cc, status:'Sent'});
+    }catch(e){
+      failed++; results.push({to:r.to, cc:r.cc, status:'FAILED: '+e.message});
+    }
+    prog.value = i+1;
+    if(i < m.rows.length-1) await sleep(SEND_DELAY_MS);
+  }
+
+  prog.style.display='none';
+  state.busy=false;
+  $('dryToggle').checked = true;      // re-arm the guard after every live send
+  updateSendBar();
+  renderResults(results, false);
+  logSend(false, m, sent, failed);
+  toast(failed ? 'Done with issues: '+sent+' sent, '+failed+' failed — see results.' : '✅ Sent '+sent+' emails.', !!failed);
+}
+
+function renderResults(rows, dry){
+  var html='<table><thead><tr><th>To</th><th>CC</th><th>Status</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var cls = /^Sent/.test(r.status)?'result-ok':/DRY/.test(r.status)?'result-dry':'result-bad';
+    html+='<tr><td class="static" style="font-family:var(--mono);font-size:12.5px">'+esc(r.to)+'</td>'+
+      '<td class="static" style="font-family:var(--mono);font-size:12.5px">'+esc((r.cc||[]).join(', ')||'—')+'</td>'+
+      '<td class="static '+cls+'">'+esc(r.status)+'</td></tr>';
+  });
+  $('resultsBody').innerHTML = html+'</tbody></table>';
+}
+
+/* ---------------- local send log ---------------- */
+function logSend(dry, m, sent, failed){
+  var log = load('bm_log', []);
+  log.push({ ts:Date.now(), by: state.userEmail || '(not connected)', list: state.listName || '(unsaved)',
+    subject: $('subject').value.trim(), emails: dry?0:(sent||0), addresses: dry?0:m.addressCount,
+    dry: dry, note: dry ? (m.emailCount+' previewed') : (failed? failed+' failed' : 'OK') });
+  if(log.length>200) log = log.slice(-200);
+  store('bm_log', log); renderLog();
+}
+function renderLog(){
+  var log = load('bm_log', []).slice(-25).reverse();
+  if(!log.length){ $('logBody').innerHTML='<div class="empty">No sends yet.</div>'; return; }
+  var html='<table><thead><tr><th>When</th><th>By</th><th>List</th><th>Subject</th><th>Sent</th><th>Mode</th><th>Notes</th></tr></thead><tbody>';
+  log.forEach(function(e){
+    html+='<tr><td class="static" style="font-family:var(--mono);font-size:12px">'+new Date(e.ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
+      '<td class="static" style="font-family:var(--mono);font-size:12px">'+esc(e.by)+'</td>'+
+      '<td class="static">'+esc(e.list)+'</td><td class="static">'+esc(e.subject)+'</td>'+
+      '<td class="static" style="font-family:var(--mono)">'+e.emails+'</td>'+
+      '<td class="static '+(e.dry?'result-dry':'result-ok')+'">'+(e.dry?'DRY':'LIVE')+'</td>'+
+      '<td class="static">'+esc(e.note||'')+'</td></tr>';
+  });
+  $('logBody').innerHTML = html+'</tbody></table>';
+}
+$('clearLogBtn').onclick = function(){
+  if(confirm('Clear the send history stored in this browser?')){ store('bm_log', []); renderLog(); }
+};
+
+/* ---------------- send bar ---------------- */
+function updateSendBar(){
+  var live = !$('dryToggle').checked;
+  var bar=$('sendbar');
+  bar.classList.toggle('live', live);
+  $('guardLabel').innerHTML = live
+    ? '<b>Dry run OFF</b>THIS IS A LIVE SEND'
+    : '<b>Dry run ON</b>NOTHING WILL SEND';
+  var m = manifest();
+  $('sendSummary').textContent = m.emailCount
+    ? m.emailCount+' emails / '+m.addressCount+' addresses'+(state.listName?' — "'+state.listName+'"':'')
+    : 'No recipients loaded';
+  var btn=$('sendBtn');
+  btn.textContent = state.busy ? 'Sending…' : (live ? 'Send for real' : 'Run dry run');
+  var connected = !!state.token && Date.now() < state.tokenExp;
+  btn.disabled = state.busy || !m.emailCount || m.invalid>0 || (live && !connected);
+  btn.title = (live && !connected) ? 'Connect Gmail first (top right)' : '';
+}
+$('dryToggle').addEventListener('change', updateSendBar);
+$('sendBtn').addEventListener('click', doSend);
+
+/* ---------------- boot ---------------- */
+renderTable(); refreshSaved(); renderLog(); initAuth(); renderAuth(); updateSendBar();
+window.addEventListener('beforeunload', function(e){
+  if(state.busy){ e.preventDefault(); e.returnValue=''; }
+});
+</script>
+</body>
+</html>
