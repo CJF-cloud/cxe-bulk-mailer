@@ -545,6 +545,12 @@ function initAuth(){
     scope: SCOPES,
     callback: function(resp){
       if(resp.error){ toast('Google sign-in failed: '+resp.error, true); return; }
+      if(!google.accounts.oauth2.hasGrantedAllScopes(resp, 'https://www.googleapis.com/auth/gmail.send')){
+        toast('Almost there — you didn\u2019t grant the "Send email" permission, so sends will fail. '+
+              'Click Connect Gmail again and tick ALL the checkboxes on the Google screen.', true);
+        try{ google.accounts.oauth2.revoke(resp.access_token, function(){}); }catch(e){}
+        return;
+      }
       state.token = resp.access_token;
       state.tokenExp = Date.now() + (resp.expires_in-60)*1000;
       fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+state.token}})
