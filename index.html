@@ -44,8 +44,7 @@
 
   /* ---------- layout ---------- */
   main{max-width:1120px;margin:22px auto;padding:0 18px;display:grid;
-       grid-template-columns:minmax(340px,460px) 1fr;gap:18px}
-  @media(max-width:900px){main{grid-template-columns:1fr}}
+       grid-template-columns:1fr;gap:16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
   .card h2{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
            color:var(--ink-soft);margin-bottom:14px}
@@ -63,9 +62,9 @@
   .hint code{font-family:var(--mono);background:var(--paper);padding:1px 5px;border-radius:3px}
 
   /* ---------- toolbar / buttons ---------- */
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-  .btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 13px;
-    font-family:var(--sans);font-weight:600;font-size:13px;color:var(--ink);cursor:pointer}
+  .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 10px;
+    font-family:var(--sans);font-weight:600;font-size:12.5px;color:var(--ink);cursor:pointer}
   .btn:hover{border-color:var(--accent);color:var(--accent-deep)}
   .btn.solid{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.solid:hover{background:var(--accent-deep)}
@@ -75,8 +74,8 @@
   .btn-link:hover{text-decoration:underline}
 
   /* ---------- drop zone ---------- */
-  .drop{border:2px dashed var(--line);border-radius:8px;padding:22px;text-align:center;
-        color:var(--ink-soft);cursor:pointer;transition:border-color .2s, background .2s;margin-bottom:12px}
+  .drop{border:1.5px dashed var(--line);border-radius:8px;padding:13px;text-align:center;
+        color:var(--ink-soft);cursor:pointer;transition:border-color .2s, background .2s;margin-bottom:10px;font-size:12.5px}
   .drop.over{border-color:var(--accent);background:#f0fafb}
   .drop b{color:var(--ink)}
 
@@ -112,6 +111,19 @@
   .result-dry{color:var(--guard);font-weight:600}
   .head-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
   .head-row h2{margin-bottom:0}
+
+  /* ---------- funnel toggle ---------- */
+  .iconbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
+    border-radius:6px;padding:5px 10px;font-family:var(--sans);font-weight:600;font-size:12.5px;
+    color:var(--ink-soft);cursor:pointer}
+  .iconbtn:hover{border-color:var(--accent);color:var(--accent-deep)}
+  .iconbtn.active{background:#e6f5f7;border-color:var(--accent);color:var(--accent-deep)}
+  .iconbtn svg{width:13px;height:13px;fill:currentColor}
+
+  /* ---------- compose layout ---------- */
+  .fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:700px){.fieldrow{grid-template-columns:1fr}}
+  .substat{display:block;font-size:11.5px;color:var(--ink-soft);font-weight:400;margin-top:2px}
 
   /* ---------- send bar ---------- */
   .sendbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;
@@ -170,6 +182,8 @@
       <span class="counts" id="listCounts"></span>
       <span class="spacer"></span>
       <span class="counts" id="savedAs"></span>
+      <button class="iconbtn" id="filterToggle" title="Filter the list (like Sheets)">
+        <svg viewBox="0 0 24 24"><path d="M3 4h18l-7 8.5V20l-4-2v-5.5L3 4z"/></svg>Filter</button>
     </div>
 
     <div class="toolbar">
@@ -178,50 +192,53 @@
       <button class="btn" id="templateBtn">Download template</button>
       <button class="btn" id="exportBtn">Export list as .xlsx</button>
       <span style="flex:1"></span>
-      <select id="savedLists" style="width:auto;min-width:170px"><option value="">Saved lists…</option></select>
+      <select id="savedLists" style="width:auto;min-width:150px;padding:5px 8px;font-size:12.5px"><option value="">Saved lists…</option></select>
       <button class="btn" id="saveListBtn">💾 Save list</button>
       <button class="btn ghost-danger" id="deleteListBtn">Delete saved</button>
     </div>
 
     <div class="drop" id="dropZone">
-      Drop an <b>.xlsx</b> or <b>.csv</b> here (or click) — columns: <b>Email(s)</b>, <b>Name</b>, <b>Notes</b>.<br>
-      Comma-separated addresses on one row = one email (first is To, rest are CC — they see each other).
-      Separate rows = separate emails, recipients never see each other.
+      Drop an <b>.xlsx</b> or <b>.csv</b> here (or click) — columns: <b>Email(s)</b>, <b>Name</b>, <b>Notes</b>.
+      Comma-separated addresses on one row go out as one email (first is To, rest are CC).
     </div>
 
     <div class="tablewrap" id="contactTableWrap"></div>
-    <div class="toolbar" style="margin:12px 0 0">
+    <div class="toolbar" style="margin:10px 0 0">
       <button class="btn" id="addRowBtn">+ Add row</button>
-      <button class="btn" id="clearFiltersBtn">Clear filters</button>
       <span style="flex:1"></span>
       <button class="btn ghost-danger" id="clearBtn">Clear list</button>
     </div>
-    <div class="hint" style="margin-top:8px">Filters (the 🔍 row) only change what&rsquo;s <i>shown</i> — the checkboxes decide who actually
-      gets the email. Uncheck anyone who shouldn&rsquo;t receive this send; the header checkbox toggles all shown rows at once.</div>
   </section>
 
   <!-- ============ COMPOSE ============ -->
   <section class="card">
     <h2>2 · Compose</h2>
-    <label for="replyTo">Reply-To <small>(optional — replies go here instead of your inbox)</small></label>
-    <input type="email" id="replyTo" placeholder="e.g. cxe-team@flipp.com">
-    <label for="subject">Subject</label>
-    <input type="text" id="subject" placeholder="e.g. Heads up, {{name}} — flyer deadline moved">
+    <div class="fieldrow">
+      <div>
+        <label for="subject">Subject</label>
+        <input type="text" id="subject" placeholder="e.g. Update on this week's flyer schedule">
+      </div>
+      <div>
+        <label for="replyTo">Reply-To <small>(optional — replies go here instead of your inbox)</small></label>
+        <input type="email" id="replyTo" placeholder="e.g. cxe-team@flipp.com">
+      </div>
+    </div>
     <label for="body">Message</label>
     <textarea id="body" placeholder="Write like you'd write an email. Line breaks are kept."></textarea>
-    <div class="hint">Use <code>{{name}}</code> anywhere in the subject or body — it fills in from the Name
-      column, or "there" if blank. Emails send from the Gmail account you connect (top right).</div>
+    <div class="hint">To personalize, type <code>{{name}}</code> where a contact&rsquo;s name should appear — it&rsquo;s
+      replaced with each contact&rsquo;s Name before sending (or "there" if that cell is blank). Run a dry run to
+      preview the exact greeting each contact will receive before anything goes out.</div>
   </section>
 
-  <!-- ============ RESULTS / LOG ============ -->
+  <!-- ============ RECENT SENDS ============ -->
   <section class="card">
     <div class="head-row">
-      <h2>3 · Results & history</h2>
+      <h2>3 · Recent sends</h2>
+      <span class="counts" id="logScope">stored in this browser</span>
       <span class="spacer"></span>
+      <button class="btn" id="downloadLogBtn">⬇ Download send log</button>
       <button class="btn-link" id="clearLogBtn">Clear history</button>
     </div>
-    <div id="resultsBody"><div class="empty">Dry-run and send results show up here.</div></div>
-    <div class="head-row" style="margin-top:18px"><h2 style="font-size:11px">Recent sends (this browser)</h2></div>
     <div id="logBody"><div class="empty">No sends yet.</div></div>
   </section>
 </main>
@@ -261,6 +278,7 @@ var SEND_DELAY_MS = 700;       // gentle pacing between API calls
 var state = {
   rows: [],                    // {emails:'a@x.com, b@x.com', name:'', notes:'', include:true}
   filters: { emails:'', name:'', notes:'' },
+  filtersOn: false,
   listName: '',
   token: null, tokenExp: 0, userEmail: '',
   busy: false, tokenClient: null
@@ -324,12 +342,15 @@ function renderTable(){
 
   var html = '<table><thead>'+
     '<tr><th class="chkcol"><input type="checkbox" id="chkAll" title="Include / exclude all shown rows"'+(allVisChecked?' checked':'')+'></th>'+
-    '<th style="width:34px">#</th><th>Email(s) — first is To, rest are CC</th><th>Name</th><th>Notes</th><th></th></tr>'+
-    '<tr class="filterrow"><td class="chkcol" title="Filters only change what\u2019s shown — the checkboxes decide who gets the email">🔍</td><td></td>'+
+    '<th style="width:34px">#</th><th>Email(s) — first is To, rest are CC</th><th>Name</th><th>Notes</th><th></th></tr>';
+  if(state.filtersOn){
+    html += '<tr class="filterrow"><td class="chkcol"></td><td></td>'+
     '<td><input id="fEmails" placeholder="Filter emails… (e.g. @acme.com)" value="'+esc(f.emails)+'"></td>'+
     '<td><input id="fName" placeholder="Filter names…" value="'+esc(f.name)+'"></td>'+
     '<td><input id="fNotes" placeholder="Filter notes…" value="'+esc(f.notes)+'"></td>'+
-    '<td></td></tr></thead><tbody>';
+    '<td></td></tr>';
+  }
+  html += '</thead><tbody>';
 
   var shown = 0;
   state.rows.forEach(function(r, i){
@@ -344,7 +365,7 @@ function renderTable(){
       '<td class="emailcol"><input data-i="'+i+'" data-f="emails" value="'+esc(r.emails)+'" placeholder="a@acme.com, b@acme.com">'+
         (bad?'<div class="issue">'+esc(mr.issues.join('; '))+'</div>':'')+
         (mr && mr.cc.length?'<div class="cc-note">1 To + '+mr.cc.length+' CC — same thread</div>':'')+'</td>'+
-      '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="{{name}}"></td>'+
+      '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="Name (optional)"></td>'+
       '<td><input data-i="'+i+'" data-f="notes" value="'+esc(r.notes)+'" placeholder="optional"></td>'+
       '<td class="static"><button class="rowdel" data-del="'+i+'" title="Remove row">✕</button></td></tr>';
   });
@@ -411,7 +432,13 @@ $('contactTableWrap').addEventListener('click', function(e){
 });
 $('addRowBtn').onclick = function(){ state.rows.push({emails:'',name:'',notes:'',include:true}); renderTable();
   var ins=$('contactTableWrap').querySelectorAll('input[data-f=emails]'); ins[ins.length-1] && ins[ins.length-1].focus(); };
-$('clearFiltersBtn').onclick = function(){ state.filters={emails:'',name:'',notes:''}; renderTable(); };
+$('filterToggle').onclick = function(){
+  state.filtersOn = !state.filtersOn;
+  if(!state.filtersOn) state.filters = {emails:'',name:'',notes:''}; // turning the funnel off clears filters, like Sheets
+  this.classList.toggle('active', state.filtersOn);
+  renderTable();
+  if(state.filtersOn){ var fe=$('fEmails'); fe && fe.focus(); }
+};
 $('clearBtn').onclick = function(){
   if(state.rows.length && !confirm('Clear the current list? (Saved lists are untouched.)')) return;
   state.rows=[]; state.listName=''; renderTable();
@@ -582,12 +609,17 @@ function buildMime(r, subject, bodyText, replyTo){
   return b64url(new TextEncoder().encode(lines.join('\r\n')));
 }
 function mergeText(t, r){ return String(t).replace(/\{\{\s*name\s*\}\}/gi, r.name || 'there'); }
+function unknownTags(text){
+  var out=[], m, re=/\{\{\s*([^{}]+?)\s*\}\}/g;
+  while((m=re.exec(String(text)))){ if(m[1].trim().toLowerCase()!=='name') out.push(m[0]); }
+  return out;
+}
 
 function sentLast24h(){
-  var log = load('bm_log', []);
+  var log = load('bm_sendlog', []);
   var cutoff = Date.now() - 24*3600*1000;
-  return log.filter(function(e){ return !e.dry && e.ts > cutoff && e.by === state.userEmail; })
-            .reduce(function(s,e){ return s + (e.addresses||0); }, 0);
+  return log.filter(function(e){ return e.mode==='LIVE' && e.status==='Sent' && e.ts > cutoff && e.by === state.userEmail; })
+            .reduce(function(s,e){ return s + 1 + (e.cc||0); }, 0);
 }
 
 async function doSend(){
@@ -602,12 +634,14 @@ async function doSend(){
   if(!subject) return toast('Give the email a subject.', true);
   if(!body.trim()) return toast('The message body is empty.', true);
   if(replyTo && !isValidEmail(replyTo)) return toast('Reply-To doesn\u2019t look like a valid email.', true);
+  var badTags = unknownTags(subject).concat(unknownTags(body));
+  if(badTags.length) return toast('Unrecognized personalization tag: '+badTags[0]+' — only {{name}} is supported. '+
+    'Fix the typo so clients never see a raw tag.', true);
 
   if(dry){
-    renderResults(m.rows.map(function(r){ return {to:r.to, cc:r.cc, status:'DRY RUN — not sent',
-      preview: mergeText(subject, r)}; }), true);
-    logSend(true, m);
-    toast('Dry run complete — '+m.emailCount+' emails would send ('+m.addressCount+' addresses). Nothing was sent.');
+    logEntries(m.rows.map(function(r){ return { ts:Date.now(), by:state.userEmail||'(not connected)',
+      to:r.to, name:r.name, cc:r.cc.length, subject:mergeText(subject,r), mode:'DRY', status:'Preview — not sent' }; }));
+    toast('Dry run complete — '+m.emailCount+' emails would send ('+m.addressCount+' addresses). Nothing was sent. Check Recent sends for the exact greeting each contact gets.');
     return;
   }
 
@@ -621,10 +655,12 @@ async function doSend(){
 
   state.busy = true; updateSendBar();
   var prog=$('sendProgress'); prog.style.display=''; prog.max=m.rows.length; prog.value=0;
-  var results=[], sent=0, failed=0;
+  var entries=[], sent=0, failed=0;
 
   for(var i=0;i<m.rows.length;i++){
     var r=m.rows[i];
+    var entry = { ts:Date.now(), by:state.userEmail, to:r.to, name:r.name, cc:r.cc.length,
+                  subject:mergeText(subject,r), mode:'LIVE', status:'' };
     try{
       var raw = buildMime(r, mergeText(subject,r), mergeText(body,r), replyTo);
       var resp = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
@@ -636,10 +672,11 @@ async function doSend(){
         var err = await resp.json().catch(function(){ return {}; });
         throw new Error((err.error && err.error.message) || ('HTTP '+resp.status));
       }
-      sent++; results.push({to:r.to, cc:r.cc, status:'Sent'});
+      sent++; entry.status='Sent';
     }catch(e){
-      failed++; results.push({to:r.to, cc:r.cc, status:'FAILED: '+e.message});
+      failed++; entry.status='FAILED: '+e.message;
     }
+    entries.push(entry);
     prog.value = i+1;
     if(i < m.rows.length-1) await sleep(SEND_DELAY_MS);
   }
@@ -648,47 +685,46 @@ async function doSend(){
   state.busy=false;
   $('dryToggle').checked = true;      // re-arm the guard after every live send
   updateSendBar();
-  renderResults(results, false);
-  logSend(false, m, sent, failed);
-  toast(failed ? 'Done with issues: '+sent+' sent, '+failed+' failed — see results.' : '✅ Sent '+sent+' emails.', !!failed);
+  logEntries(entries);
+  toast(failed ? 'Done with issues: '+sent+' sent, '+failed+' failed — see Recent sends.' : '✅ Sent '+sent+' emails.', !!failed);
 }
 
-function renderResults(rows, dry){
-  var html='<table><thead><tr><th>To</th><th>CC</th><th>Status</th></tr></thead><tbody>';
-  rows.forEach(function(r){
-    var cls = /^Sent/.test(r.status)?'result-ok':/DRY/.test(r.status)?'result-dry':'result-bad';
-    html+='<tr><td class="static" style="font-family:var(--mono);font-size:12.5px">'+esc(r.to)+'</td>'+
-      '<td class="static" style="font-family:var(--mono);font-size:12.5px">'+esc((r.cc||[]).join(', ')||'—')+'</td>'+
-      '<td class="static '+cls+'">'+esc(r.status)+'</td></tr>';
-  });
-  $('resultsBody').innerHTML = html+'</tbody></table>';
-}
-
-/* ---------------- local send log ---------------- */
-function logSend(dry, m, sent, failed){
-  var log = load('bm_log', []);
-  log.push({ ts:Date.now(), by: state.userEmail || '(not connected)', list: state.listName || '(unsaved)',
-    subject: $('subject').value.trim(), emails: dry?0:(sent||0), addresses: dry?0:m.addressCount,
-    dry: dry, note: dry ? (m.emailCount+' previewed') : (failed? failed+' failed' : 'OK') });
-  if(log.length>200) log = log.slice(-200);
-  store('bm_log', log); renderLog();
+/* ---------------- send log (per recipient, this browser) ---------------- */
+function logEntries(entries){
+  var log = load('bm_sendlog', []);
+  log = log.concat(entries);
+  if(log.length>2000) log = log.slice(-2000);
+  store('bm_sendlog', log); renderLog();
 }
 function renderLog(){
-  var log = load('bm_log', []).slice(-25).reverse();
-  if(!log.length){ $('logBody').innerHTML='<div class="empty">No sends yet.</div>'; return; }
-  var html='<table><thead><tr><th>When</th><th>By</th><th>List</th><th>Subject</th><th>Sent</th><th>Mode</th><th>Notes</th></tr></thead><tbody>';
+  var log = load('bm_sendlog', []).slice(-30).reverse();
+  if(!log.length){ $('logBody').innerHTML='<div class="empty">Nothing sent from this browser yet. Dry-run previews and sent emails will appear here.</div>'; return; }
+  var html='<table><thead><tr><th>Recipient</th><th>Time</th><th>Status</th></tr></thead><tbody>';
   log.forEach(function(e){
-    html+='<tr><td class="static" style="font-family:var(--mono);font-size:12px">'+new Date(e.ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
-      '<td class="static" style="font-family:var(--mono);font-size:12px">'+esc(e.by)+'</td>'+
-      '<td class="static">'+esc(e.list)+'</td><td class="static">'+esc(e.subject)+'</td>'+
-      '<td class="static" style="font-family:var(--mono)">'+e.emails+'</td>'+
-      '<td class="static '+(e.dry?'result-dry':'result-ok')+'">'+(e.dry?'DRY':'LIVE')+'</td>'+
-      '<td class="static">'+esc(e.note||'')+'</td></tr>';
+    var ok = e.status==='Sent', dry = e.mode==='DRY';
+    var cls = ok?'result-ok':dry?'result-dry':'result-bad';
+    var who = e.name ? esc(e.name)+' <span class="substat" style="display:inline">('+esc(e.to)+(e.cc?' +'+e.cc+' CC':'')+')</span>'
+                     : esc(e.to)+(e.cc?' <span class="substat" style="display:inline">+'+e.cc+' CC</span>':'');
+    html+='<tr><td class="static">'+who+'</td>'+
+      '<td class="static" style="font-family:var(--mono);font-size:12px;white-space:nowrap">'+
+        new Date(e.ts).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'</td>'+
+      '<td class="static '+cls+'">'+esc(dry?'Preview':'')+esc(dry?'':e.status)+
+        (dry?'<span class="substat">would send as: “'+esc(e.subject)+'”</span>':'')+'</td></tr>';
   });
   $('logBody').innerHTML = html+'</tbody></table>';
 }
+$('downloadLogBtn').onclick = function(){
+  var log = load('bm_sendlog', []);
+  if(!log.length){ toast('No send history to download yet.', true); return; }
+  var aoa = [['Time','Sent by','Recipient','Name','CC count','Subject (as sent)','Mode','Status']]
+    .concat(log.map(function(e){ return [new Date(e.ts).toLocaleString(), e.by, e.to, e.name||'', e.cc||0, e.subject, e.mode, e.status]; }));
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:20},{wch:28},{wch:30},{wch:16},{wch:9},{wch:44},{wch:7},{wch:28}];
+  var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Send Log');
+  XLSX.writeFile(wb, 'BulkMailer_SendLog.xlsx');
+};
 $('clearLogBtn').onclick = function(){
-  if(confirm('Clear the send history stored in this browser?')){ store('bm_log', []); renderLog(); }
+  if(confirm('Clear the send history stored in this browser? Consider downloading the log first.')){ store('bm_sendlog', []); renderLog(); }
 };
 
 /* ---------------- send bar ---------------- */
