@@ -137,9 +137,10 @@
                  background:#fff;transition:left .25s}
   .sendbar.live .switch{background:#7c1f1f}
   .sendbar.live .switch::after{left:25px}
-  .guard-label{font-family:var(--mono);font-size:12px;letter-spacing:.08em}
-  .guard-label b{display:block;font-size:13px;letter-spacing:.02em;font-family:var(--sans)}
-  .send-summary{font-family:var(--mono);font-size:12px;color:#e8eef2;flex:1;min-width:180px}
+  .guard-label{font-family:var(--sans);font-size:11px;color:#c6d2da;letter-spacing:.01em}
+  .guard-label b{display:block;font-size:12.5px;color:#fff;font-weight:600}
+  .sendbar.live .guard-label{color:#f3dcdc}
+  .send-summary{font-family:var(--mono);font-size:11.5px;color:#e8eef2;flex:1;min-width:180px}
   button.primary{border:none;border-radius:6px;padding:11px 22px;font-weight:700;font-size:14px;
     font-family:var(--sans);cursor:pointer;background:var(--accent);color:#fff}
   button.primary:hover{background:var(--accent-deep)}
@@ -212,7 +213,16 @@
 
   <!-- ============ COMPOSE ============ -->
   <section class="card">
-    <h2>2 · Compose</h2>
+    <div class="head-row">
+      <h2>2 · Compose</h2>
+      <span class="counts" id="tplStatus"></span>
+      <span class="spacer"></span>
+      <select id="savedTpls" style="width:auto;min-width:150px;padding:5px 8px;font-size:12.5px">
+        <option value="">Saved templates…</option>
+      </select>
+      <button class="btn" id="saveTplBtn">💾 Save template</button>
+      <button class="btn ghost-danger" id="deleteTplBtn">Delete saved</button>
+    </div>
     <div class="fieldrow">
       <div>
         <label for="subject">Subject</label>
@@ -248,11 +258,11 @@
   <label class="guard">
     <input type="checkbox" id="dryToggle" checked>
     <span class="switch" aria-hidden="true"></span>
-    <span class="guard-label" id="guardLabel"><b>Dry run ON</b>NOTHING WILL SEND</span>
+    <span class="guard-label" id="guardLabel"><b>Dry Run Mode</b>No emails will be sent</span>
   </label>
   <div class="send-summary" id="sendSummary">—</div>
   <progress id="sendProgress" max="100" value="0" style="display:none"></progress>
-  <button class="primary" id="sendBtn" disabled>Run dry run</button>
+  <button class="primary" id="sendBtn" disabled>Test Dry Run</button>
 </div>
 
 <script>
@@ -535,6 +545,67 @@ $('deleteListBtn').onclick = function(){
   toast('Deleted "'+name.trim()+'".');
 };
 
+/* ---------------- saved message templates (this browser) ---------------- */
+var DEFAULT_TEMPLATES = {
+  'ELW / Holiday Closure Notice': {
+    subject: 'Notice of Extended Long Weekend - [ENTER HOLIDAY NAME]',
+    replyTo: '',
+    body: 'Hello Team,\n\nHope you are having a good week.\n\nJust sending a note to let you know that our offices will be closed [ENTER DATE] for the [ENTER HOLIDAY]. Flipp will be observing an extended closure, so team members will also be out of office on [ENTER DATE] and returning [ENTER DATE].\n\nWe kindly ask that you keep this in mind as you provide assets for any upcoming publications. Email responses for non-urgent items may be delayed, but your account team members will still be available for any urgent items requiring action.\n\nIf you have any questions or concerns, please let us know.\n\nBest Regards,\n[NAME]\nP: [CONTACT NUMBER]'
+  }
+};
+function refreshTemplates(){
+  var tpls = load('bm_templates', {});
+  var sel = $('savedTpls');
+  var html = '<option value="">Saved templates…</option>';
+  html += '<optgroup label="Built-in">' + Object.keys(DEFAULT_TEMPLATES).map(function(n){
+    return '<option value="b:'+esc(n)+'">'+esc(n)+'</option>';
+  }).join('') + '</optgroup>';
+  var names = Object.keys(tpls).sort();
+  if(names.length){
+    html += '<optgroup label="Your templates">' + names.map(function(n){
+      return '<option value="u:'+esc(n)+'">'+esc(n)+'</option>';
+    }).join('') + '</optgroup>';
+  }
+  sel.innerHTML = html;
+}
+$('saveTplBtn').onclick = function(){
+  var subject = $('subject').value.trim(), body = $('body').value;
+  if(!subject && !body.trim()){ toast('Write a subject or message first, then save it as a template.', true); return; }
+  var name = prompt('Save this template as:', subject.slice(0,40) || 'My template');
+  if(!name) return;
+  var tpls = load('bm_templates', {});
+  tpls[name.trim()] = { subject:subject, body:body, replyTo:$('replyTo').value.trim() };
+  store('bm_templates', tpls);
+  refreshTemplates(); $('tplStatus').textContent = 'template: '+name.trim();
+  toast('Saved template "'+name.trim()+'" in this browser.');
+};
+$('savedTpls').addEventListener('change', function(){
+  if(!this.value) return;
+  var isBuiltin = this.value.indexOf('b:') === 0;
+  var name = this.value.slice(2);
+  var t = isBuiltin ? DEFAULT_TEMPLATES[name] : load('bm_templates', {})[name];
+  if(t){
+    $('subject').value = t.subject || '';
+    $('body').value = t.body || '';
+    $('replyTo').value = t.replyTo || '';
+    $('tplStatus').textContent = 'template: '+name;
+    toast(isBuiltin
+      ? 'Loaded "'+name+'" — fill in every [bracketed] placeholder before sending.'
+      : 'Loaded "'+name+'" — remember to update any dates before sending.');
+  }
+  this.value='';
+});
+$('deleteTplBtn').onclick = function(){
+  var tpls = load('bm_templates', {});
+  var names = Object.keys(tpls);
+  if(!names.length){ toast('No saved templates to delete.', true); return; }
+  var name = prompt('Delete which saved template?\n\n'+names.join('\n'));
+  if(!name || !tpls[name.trim()]) return;
+  delete tpls[name.trim()]; store('bm_templates', tpls); refreshTemplates();
+  $('tplStatus').textContent = '';
+  toast('Deleted "'+name.trim()+'".');
+};
+
 /* ---------------- Gmail auth (Google Identity Services) ---------------- */
 function gisReady(){ return typeof google!=='undefined' && google.accounts && google.accounts.oauth2; }
 function initAuth(){
@@ -643,6 +714,9 @@ async function doSend(){
   var badTags = unknownTags(subject).concat(unknownTags(body));
   if(badTags.length) return toast('Unrecognized personalization tag: '+badTags[0]+' — only {{name}} is supported. '+
     'Fix the typo so clients never see a raw tag.', true);
+  var leftover = (subject+'\n'+body).match(/\[[^\[\]\n]{2,60}\]/);
+  if(leftover) return toast('Unfilled placeholder found: '+leftover[0]+' — fill in every [bracketed] detail before sending. '+
+    '(If the brackets are intentional, remove or reword them.)', true);
 
   if(dry){
     logEntries(m.rows.map(function(r){ return { ts:Date.now(), by:state.userEmail||'(not connected)',
@@ -739,14 +813,14 @@ function updateSendBar(){
   var bar=$('sendbar');
   bar.classList.toggle('live', live);
   $('guardLabel').innerHTML = live
-    ? '<b>Dry run OFF</b>THIS IS A LIVE SEND'
-    : '<b>Dry run ON</b>NOTHING WILL SEND';
+    ? '<b>Live Mode</b>Emails will send to all selected contacts'
+    : '<b>Dry Run Mode</b>No emails will be sent';
   var m = manifest();
   $('sendSummary').textContent = m.emailCount
     ? m.emailCount+' emails / '+m.addressCount+' addresses'+(state.listName?' — "'+state.listName+'"':'')
     : 'No recipients loaded';
   var btn=$('sendBtn');
-  btn.textContent = state.busy ? 'Sending…' : (live ? 'Send for real' : 'Run dry run');
+  btn.textContent = state.busy ? 'Sending…' : (live ? 'Send Live Run' : 'Test Dry Run');
   var connected = !!state.token && Date.now() < state.tokenExp;
   btn.disabled = state.busy || !m.emailCount || m.invalid>0 || (live && !connected);
   btn.title = (live && !connected) ? 'Connect Gmail first (top right)' : '';
@@ -755,7 +829,7 @@ $('dryToggle').addEventListener('change', updateSendBar);
 $('sendBtn').addEventListener('click', doSend);
 
 /* ---------------- boot ---------------- */
-renderTable(); refreshSaved(); renderLog(); initAuth(); renderAuth(); updateSendBar();
+renderTable(); refreshSaved(); refreshTemplates(); renderLog(); initAuth(); renderAuth(); updateSendBar();
 window.addEventListener('beforeunload', function(e){
   if(state.busy){ e.preventDefault(); e.returnValue=''; }
 });
