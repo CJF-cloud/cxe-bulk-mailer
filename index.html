@@ -9,160 +9,345 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
+  /* ============================================================
+     CXE Bulk Emailer — visual system
+     Type:  SF Pro (system) with Inter fallback
+     Color: Apple neutral greys + system accent blue
+     Form:  soft surfaces, 18px radii, layered shadows, no hard borders
+     ============================================================ */
   :root{
-    --paper:#eef2f4; --card:#ffffff; --ink:#17242e; --ink-soft:#5b6b76;
-    --line:#d8dfe4; --accent:#0097a8; --accent-deep:#00727f;
-    --guard:#e8a13d; --live:#d64545; --live-deep:#b23434; --ok:#2e8b57;
-    --mono:'Source Code Pro',monospace; --sans:'Source Sans 3','Source Sans Pro',sans-serif;
+    --canvas:#F5F5F7;
+    --surface:#FFFFFF;
+    --sunken:#F5F5F7;
+    --ink:#1D1D1F;
+    --ink-2:#6E6E73;
+    --ink-3:#86868B;
+    --ink-soft:#6E6E73;              /* alias — referenced inline by table cells */
+    --hairline:rgba(0,0,0,.08);
+    --hairline-2:rgba(0,0,0,.045);
+    --accent:#0071E3;
+    --accent-hover:#0077ED;
+    --accent-wash:#EAF3FE;
+    --amber:#FF9F0A;
+    --red:#FF3B30;
+    --red-deep:#D70015;
+    --green:#34C759;
+    --sans:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter','Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,'SF Mono','JetBrains Mono','Menlo',Consolas,monospace;
+    --r-lg:18px; --r-md:12px; --r-sm:9px; --r-pill:980px;
+    --shadow-card:0 1px 2px rgba(0,0,0,.04), 0 8px 24px -8px rgba(0,0,0,.10);
+    --shadow-dock:0 1px 3px rgba(0,0,0,.08), 0 18px 40px -12px rgba(0,0,0,.28);
+    --ease:cubic-bezier(.32,.72,0,1);
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:var(--sans);background:var(--paper);color:var(--ink);
-       font-size:14.5px;line-height:1.5;padding-bottom:100px}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:var(--sans);background:var(--canvas);color:var(--ink);
+    font-size:15px;line-height:1.47;letter-spacing:-.01em;
+    padding-bottom:132px;-webkit-font-smoothing:antialiased;
+  }
 
-  /* ---------- header ---------- */
-  header{background:var(--ink);color:#fff;padding:14px 22px;display:flex;
-         align-items:center;gap:16px;flex-wrap:wrap}
-  .brand{font-weight:700;font-size:16px}
-  .brand .stamp{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--paper);
-    background:var(--accent);padding:2px 7px;border-radius:3px;margin-left:8px;
-    letter-spacing:.12em;vertical-align:2px}
+  /* ---------- header: frosted, sticky ---------- */
+  header{
+    position:sticky;top:0;z-index:30;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:13px 26px;
+    background:rgba(255,255,255,.72);
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid var(--hairline);
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--ink);
+  }
+  .brand svg{width:19px;height:19px;color:var(--accent);flex:none}
+  .brand .stamp{
+    font-family:var(--sans);font-size:10.5px;font-weight:600;letter-spacing:.04em;
+    color:var(--ink-3);background:var(--sunken);
+    padding:3px 8px;border-radius:var(--r-pill);text-transform:uppercase;
+  }
   .spacer{flex:1}
-  .gmail-chip{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:#c6d2da}
-  .dot{width:9px;height:9px;border-radius:50%;background:#6b7a84;flex:none}
-  .dot.on{background:#4cd471}
-  button.chipbtn{border:1px solid #4a5b66;background:transparent;color:#fff;border-radius:6px;
-    padding:7px 14px;font-family:var(--sans);font-weight:600;font-size:13px;cursor:pointer}
-  button.chipbtn:hover{border-color:var(--accent);color:var(--accent)}
-  button.chipbtn.cta{background:var(--accent);border-color:var(--accent)}
-  button.chipbtn.cta:hover{background:var(--accent-deep);color:#fff}
 
-  /* ---------- setup banner ---------- */
-  .banner{max-width:1120px;margin:18px auto -4px;padding:14px 18px;border-radius:8px;
-    background:#fff7e8;border:1px solid #ecd7ab;color:#6b5322;font-size:13px}
-  .banner code{font-family:var(--mono);background:#fff;padding:1px 5px;border-radius:3px;border:1px solid #ecd7ab}
-  .banner b{color:#4a3a15}
+  /* Gmail status pill */
+  .gmail-chip{display:flex;align-items:center;gap:10px}
+  .status-pill{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--sunken);border-radius:var(--r-pill);
+    padding:5px 12px 5px 10px;
+    font-size:13px;color:var(--ink-2);letter-spacing:-.005em;max-width:46vw;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:none;transition:background .3s}
+  .dot.on{background:var(--green);box-shadow:0 0 0 3px rgba(52,199,89,.18)}
 
-  /* ---------- layout ---------- */
-  main{max-width:1120px;margin:22px auto;padding:0 18px;display:grid;
-       grid-template-columns:1fr;gap:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px}
-  .card h2{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-           color:var(--ink-soft);margin-bottom:14px}
-  .full{grid-column:1 / -1}
+  /* ---------- buttons ---------- */
+  button{font-family:var(--sans);cursor:pointer;letter-spacing:-.01em}
+  .chipbtn{
+    border:none;background:var(--sunken);color:var(--ink);
+    border-radius:var(--r-pill);padding:7px 15px;font-size:13px;font-weight:500;
+    transition:background .18s var(--ease), transform .18s var(--ease);
+  }
+  .chipbtn:hover{background:#EBEBED}
+  .chipbtn:active{transform:scale(.97)}
+  .chipbtn.cta{background:var(--accent);color:#fff}
+  .chipbtn.cta:hover{background:var(--accent-hover)}
 
-  label{display:block;font-weight:600;font-size:13px;margin:14px 0 5px}
-  label:first-of-type{margin-top:0}
-  label small{font-weight:400;color:var(--ink-soft)}
-  input[type=text],input[type=email],select,textarea{
-    width:100%;border:1px solid var(--line);border-radius:6px;padding:9px 11px;
-    font-family:var(--sans);font-size:14px;color:var(--ink);background:#fff}
-  textarea{min-height:200px;resize:vertical;line-height:1.5}
-  input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
-  .hint{font-size:12px;color:var(--ink-soft);margin-top:5px}
-  .hint code{font-family:var(--mono);background:var(--paper);padding:1px 5px;border-radius:3px}
+  .btn{
+    border:none;background:var(--sunken);color:var(--ink);
+    border-radius:var(--r-pill);padding:7px 14px;font-size:13px;font-weight:500;
+    transition:background .18s var(--ease), transform .18s var(--ease), color .18s;
+  }
+  .btn:hover{background:#EBEBED}
+  .btn:active{transform:scale(.97)}
+  .btn.solid{background:var(--accent);color:#fff}
+  .btn.solid:hover{background:var(--accent-hover)}
+  .btn.ghost-danger{color:var(--ink-2)}
+  .btn.ghost-danger:hover{background:#FFEFEE;color:var(--red-deep)}
+  .btn-link{
+    background:none;border:none;padding:0;font-size:13px;font-weight:500;
+    color:var(--accent);font-family:var(--sans);
+  }
+  .btn-link:hover{color:var(--accent-hover);text-decoration:underline;text-underline-offset:2px}
 
-  /* ---------- toolbar / buttons ---------- */
-  .toolbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-  .btn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 10px;
-    font-family:var(--sans);font-weight:600;font-size:12.5px;color:var(--ink);cursor:pointer}
-  .btn:hover{border-color:var(--accent);color:var(--accent-deep)}
-  .btn.solid{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn.solid:hover{background:var(--accent-deep)}
-  .btn.ghost-danger:hover{border-color:var(--live);color:var(--live)}
-  .btn-link{background:none;border:none;color:var(--accent-deep);font-weight:600;
-            cursor:pointer;font-size:13px;font-family:var(--sans);padding:0}
-  .btn-link:hover{text-decoration:underline}
-
-  /* ---------- drop zone ---------- */
-  .drop{border:1.5px dashed var(--line);border-radius:8px;padding:13px;text-align:center;
-        color:var(--ink-soft);cursor:pointer;transition:border-color .2s, background .2s;margin-bottom:10px;font-size:12.5px}
-  .drop.over{border-color:var(--accent);background:#f0fafb}
-  .drop b{color:var(--ink)}
-
-  /* ---------- table ---------- */
-  .tablewrap{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-     color:var(--ink-soft);text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap}
-  td{padding:0;border-bottom:1px solid var(--line);vertical-align:top}
-  td.static{padding:7px 8px}
-  td input{border:none;border-radius:0;padding:8px;font-size:13px;background:transparent;min-width:120px}
-  td input:focus{outline:2px solid var(--accent);outline-offset:-2px}
-  td.emailcol input{font-family:var(--mono);font-size:12.5px;min-width:220px}
-  tr.bad{background:#fdf0f0}
-  tr.excluded td{opacity:.45}
-  tr.excluded td.chkcol, tr.excluded td.static.chkcol{opacity:1}
-  tr.filterrow td{background:#f7fafb;border-bottom:2px solid var(--line);padding:4px 4px}
-  tr.filterrow input{font-family:var(--sans);font-size:12.5px;border:1px solid var(--line);
-    border-radius:5px;padding:5px 8px;min-width:90px;width:100%;background:#fff}
-  tr.filterrow input::placeholder{color:#9aa8b1}
-  td.chkcol{width:34px;text-align:center;padding:9px 4px 0}
-  th.chkcol{width:34px;text-align:center}
-  input[type=checkbox].rowchk, #chkAll{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
-  .rowdel{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-size:15px;padding:7px 9px}
-  .rowdel:hover{color:var(--live)}
-  .issue{color:var(--live);font-size:11.5px;font-weight:600;padding:0 8px 6px}
-  .cc-note{font-family:var(--mono);font-size:11px;color:var(--ink-soft);padding:0 8px 6px}
-  .counts{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
-  .counts b{color:var(--ink)}
-  .empty{color:var(--ink-soft);text-align:center;padding:32px 10px;font-size:13px}
-  .result-ok{color:var(--ok);font-weight:600}
-  .result-bad{color:var(--live);font-weight:600}
-  .result-dry{color:var(--guard);font-weight:600}
-  .head-row{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:12px}
-  .head-row h2{margin-bottom:0}
-
-  /* ---------- funnel toggle ---------- */
-  .iconbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;
-    border-radius:6px;padding:5px 10px;font-family:var(--sans);font-weight:600;font-size:12.5px;
-    color:var(--ink-soft);cursor:pointer}
-  .iconbtn:hover{border-color:var(--accent);color:var(--accent-deep)}
-  .iconbtn.active{background:#e6f5f7;border-color:var(--accent);color:var(--accent-deep)}
+  .iconbtn{
+    display:inline-flex;align-items:center;gap:6px;
+    border:none;background:var(--sunken);color:var(--ink-2);
+    border-radius:var(--r-pill);padding:7px 14px;font-size:13px;font-weight:500;
+    transition:background .18s var(--ease), color .18s var(--ease);
+  }
+  .iconbtn:hover{background:#EBEBED;color:var(--ink)}
+  .iconbtn.active{background:var(--accent-wash);color:var(--accent)}
   .iconbtn svg{width:13px;height:13px;fill:currentColor}
 
-  /* ---------- compose layout ---------- */
-  .fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:700px){.fieldrow{grid-template-columns:1fr}}
-  .substat{display:block;font-size:11.5px;color:var(--ink-soft);font-weight:400;margin-top:2px}
+  /* ---------- layout ---------- */
+  main{max-width:1120px;margin:26px auto 0;padding:0 26px;display:grid;grid-template-columns:1fr;gap:20px}
+  .card{
+    background:var(--surface);border-radius:var(--r-lg);padding:22px 24px;
+    box-shadow:var(--shadow-card);
+  }
+  .card h2{
+    font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:16px;
+  }
+  .head-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .head-row h2{margin-bottom:0}
+  .full{grid-column:1 / -1}
 
-  /* ---------- send bar ---------- */
-  .sendbar{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:#fff;
-           padding:12px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-           box-shadow:0 -4px 14px rgba(0,0,0,.18);transition:background .3s;z-index:20}
-  .sendbar.live{background:repeating-linear-gradient(-45deg,var(--live-deep),var(--live-deep) 14px,var(--live) 14px,var(--live) 28px)}
-  .guard{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-  .guard input{position:absolute;opacity:0}
-  .switch{width:46px;height:24px;border-radius:12px;background:var(--guard);position:relative;transition:background .25s;flex:none}
-  .switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;
-                 background:#fff;transition:left .25s}
-  .sendbar.live .switch{background:#7c1f1f}
-  .sendbar.live .switch::after{left:25px}
-  .guard-label{font-family:var(--sans);font-size:11px;color:#c6d2da;letter-spacing:.01em}
-  .guard-label b{display:block;font-size:12.5px;color:#fff;font-weight:600}
-  .sendbar.live .guard-label{color:#f3dcdc}
-  .send-summary{font-family:var(--mono);font-size:11.5px;color:#e8eef2;flex:1;min-width:180px}
-  button.primary{border:none;border-radius:6px;padding:11px 22px;font-weight:700;font-size:14px;
-    font-family:var(--sans);cursor:pointer;background:var(--accent);color:#fff}
-  button.primary:hover{background:var(--accent-deep)}
-  .sendbar.live button.primary{background:#fff;color:var(--live-deep)}
-  button.primary:disabled{opacity:.45;cursor:not-allowed}
+  /* ---------- forms ---------- */
+  label{display:block;font-size:13px;font-weight:600;color:var(--ink);margin:18px 0 7px}
+  label:first-of-type{margin-top:0}
+  label small{font-weight:400;color:var(--ink-3)}
+  input[type=text],input[type=email],select,textarea{
+    width:100%;font-family:var(--sans);font-size:14.5px;color:var(--ink);
+    background:var(--sunken);border:1px solid transparent;border-radius:var(--r-md);
+    padding:11px 13px;transition:background .15s, border-color .15s, box-shadow .15s;
+    letter-spacing:-.01em;
+  }
+  input::placeholder,textarea::placeholder{color:var(--ink-3)}
+  textarea{min-height:210px;resize:vertical;line-height:1.55}
+  input:focus,select:focus,textarea:focus{
+    outline:none;background:var(--surface);border-color:var(--accent);
+    box-shadow:0 0 0 4px rgba(0,113,227,.16);
+  }
+  select{
+    appearance:none;-webkit-appearance:none;padding-right:32px;cursor:pointer;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.7L6 7.8l3-3.1' fill='none' stroke='%236E6E73' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 11px center;background-size:12px;
+  }
+  .hint{font-size:12.5px;color:var(--ink-3);margin-top:8px;line-height:1.5}
+  .hint code{
+    font-family:var(--mono);font-size:11.5px;background:var(--sunken);
+    padding:2px 6px;border-radius:6px;color:var(--ink-2);
+  }
+  .fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.fieldrow{grid-template-columns:1fr}}
 
-  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--ink);
-         color:#fff;padding:11px 18px;border-radius:6px;font-size:13.5px;z-index:60;
-         box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:90vw}
-  .toast.err{background:var(--live-deep)}
-  progress{width:160px;height:8px}
-  @media (prefers-reduced-motion: reduce){*{transition:none !important}}
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+
+  /* ---------- drop zone ---------- */
+  .drop{
+    border:1.5px dashed rgba(0,0,0,.13);border-radius:var(--r-md);
+    padding:18px;text-align:center;color:var(--ink-2);cursor:pointer;font-size:13px;
+    background:var(--surface);
+    transition:border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--ease);
+    margin-bottom:14px;
+  }
+  .drop:hover{border-color:rgba(0,0,0,.22);background:#FCFCFD}
+  .drop.over{border-color:var(--accent);background:var(--accent-wash);transform:scale(1.006)}
+  .drop b{display:block;color:var(--ink);font-weight:600;font-size:13.5px;margin-bottom:3px}
+  .drop span{display:block;color:var(--ink-3);font-size:12.5px}
+
+  /* ---------- setup banner ---------- */
+  .banner{
+    max-width:1120px;margin:22px auto -4px;padding:15px 18px;
+    background:#FFF8E6;border-radius:var(--r-md);
+    color:#7A5B12;font-size:13px;line-height:1.5;
+    box-shadow:inset 0 0 0 1px rgba(255,159,10,.22);
+  }
+  .banner b{color:#5E4409}
+  .banner code{font-family:var(--mono);font-size:11.5px;background:rgba(255,255,255,.75);padding:2px 6px;border-radius:6px}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto;border-radius:var(--r-md)}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+  th{
+    font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;
+    color:var(--ink-3);text-align:left;padding:9px 10px;white-space:nowrap;
+    border-bottom:1px solid var(--hairline);background:var(--surface);
+  }
+  td{padding:0;border-bottom:1px solid var(--hairline-2);vertical-align:top}
+  td.static{padding:11px 10px}
+  tbody tr{transition:background .14s}
+  tbody tr:hover{background:#FAFAFB}
+  tbody tr:last-child td{border-bottom:none}
+  td input{
+    width:100%;border:1px solid transparent;border-radius:var(--r-sm);padding:9px 10px;
+    font-size:13.5px;background:transparent;min-width:110px;
+  }
+  td.emailcol{min-width:280px}
+  td input:focus{background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,113,227,.14)}
+  td.emailcol input{font-size:13px;letter-spacing:0}
+  tr.bad{background:#FFF5F5}
+  tr.bad:hover{background:#FFEFEF}
+  tr.excluded td{opacity:.42}
+  tr.excluded td.chkcol,tr.excluded td.static.chkcol{opacity:1}
+  tr.filterrow td{background:#FAFAFB;border-bottom:1px solid var(--hairline);padding:7px 5px}
+  tr.filterrow:hover{background:#FAFAFB}
+  tr.filterrow input{
+    font-size:12.5px;background:var(--surface);border:1px solid var(--hairline);
+    border-radius:var(--r-sm);padding:7px 9px;width:100%;min-width:90px;
+  }
+  th.chkcol,td.chkcol{width:40px;text-align:center}
+  td.chkcol{padding:13px 4px 0}
+  input[type=checkbox].rowchk,#chkAll{
+    width:16px;height:16px;accent-color:var(--accent);cursor:pointer;
+  }
+  .rowdel{
+    border:none;background:none;color:var(--ink-3);font-size:15px;padding:10px 11px;
+    border-radius:var(--r-sm);transition:color .15s, background .15s;line-height:1;
+  }
+  .rowdel:hover{color:var(--red);background:#FFEFEE}
+  .issue{color:var(--red-deep);font-size:11.5px;font-weight:500;padding:0 10px 7px}
+  .cc-note{font-size:11.5px;color:var(--ink-3);padding:0 10px 7px}
+  .counts{font-size:13px;color:var(--ink-2);letter-spacing:-.005em}
+  .counts b{color:var(--ink);font-weight:600}
+  .empty{
+    color:var(--ink-3);text-align:center;padding:40px 16px;font-size:13.5px;line-height:1.6;
+  }
+  .namechip{
+    display:inline-block;background:var(--sunken);color:var(--ink-2);
+    border-radius:var(--r-pill);padding:3px 11px;font-size:12.5px;font-weight:500;
+    max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;
+  }
+  .substat{display:block;font-size:11.5px;color:var(--ink-3);font-weight:400;margin-top:3px}
+  .result-ok{color:#248A3D;font-weight:500}
+  .result-bad{color:var(--red-deep);font-weight:500}
+  .result-dry{color:#B25F00;font-weight:500}
+
+  /* ============================================================
+     Send dock — the safety-critical control, so it gets the polish
+     ============================================================ */
+  .sendbar{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:40;
+    width:min(1120px, calc(100vw - 40px));
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding:13px 16px 13px 18px;border-radius:22px;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:saturate(180%) blur(24px);
+    -webkit-backdrop-filter:saturate(180%) blur(24px);
+    box-shadow:var(--shadow-dock), inset 0 0 0 1px rgba(255,255,255,.6);
+    transition:background .35s var(--ease), box-shadow .35s var(--ease);
+  }
+  .sendbar.live{
+    background:rgba(255,247,246,.9);
+    box-shadow:var(--shadow-dock), inset 0 0 0 1.5px rgba(255,59,48,.45);
+  }
+
+  /* iOS-style switch */
+  .guard{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+  .guard input{position:absolute;opacity:0;width:0;height:0}
+  .switch{
+    width:51px;height:31px;border-radius:var(--r-pill);background:var(--amber);
+    position:relative;flex:none;transition:background .3s var(--ease);
+  }
+  .switch::after{
+    content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;
+    background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
+    transition:transform .3s var(--ease);
+  }
+  .sendbar.live .switch{background:var(--red)}
+  .sendbar.live .switch::after{transform:translateX(20px)}
+  .guard:focus-within .switch{box-shadow:0 0 0 4px rgba(0,113,227,.22)}
+  .guard-label{font-size:11.5px;color:var(--ink-3);letter-spacing:-.005em;line-height:1.3}
+  .guard-label b{display:block;font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.015em}
+  .sendbar.live .guard-label{color:#A02318}
+  .sendbar.live .guard-label b{color:var(--red-deep)}
+
+  .send-summary{font-size:12.5px;color:var(--ink-2);flex:1;min-width:170px;letter-spacing:-.005em}
+
+  button.primary{
+    border:none;border-radius:var(--r-pill);padding:11px 24px;
+    font-size:14.5px;font-weight:600;letter-spacing:-.015em;
+    background:var(--accent);color:#fff;
+    transition:background .18s var(--ease), transform .18s var(--ease), opacity .18s;
+  }
+  button.primary:hover{background:var(--accent-hover)}
+  button.primary:active{transform:scale(.975)}
+  .sendbar.live button.primary{background:var(--red)}
+  .sendbar.live button.primary:hover{background:var(--red-deep)}
+  button.primary:disabled{opacity:.36;cursor:not-allowed;transform:none}
+
+  progress{
+    width:150px;height:6px;border:none;border-radius:var(--r-pill);
+    background:var(--sunken);overflow:hidden;
+  }
+  progress::-webkit-progress-bar{background:var(--sunken);border-radius:var(--r-pill)}
+  progress::-webkit-progress-value{background:var(--accent);border-radius:var(--r-pill);transition:width .3s var(--ease)}
+  progress::-moz-progress-bar{background:var(--accent);border-radius:var(--r-pill)}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:60;
+    background:rgba(29,29,31,.92);
+    backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+    color:#fff;padding:12px 20px;border-radius:var(--r-pill);
+    font-size:13.5px;font-weight:500;letter-spacing:-.01em;max-width:min(560px,90vw);
+    box-shadow:0 8px 30px rgba(0,0,0,.24);
+    animation:toastIn .34s var(--ease);
+  }
+  .toast.err{background:rgba(215,0,21,.94)}
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+  .loading{opacity:.5;pointer-events:none;transition:opacity .2s}
+
+  /* ---------- focus visibility + motion ---------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button:focus-visible{outline-offset:3px}
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important}
+  }
+  @media(max-width:700px){
+    main{padding:0 16px}
+    .card{padding:18px 16px}
+    .sendbar{width:calc(100vw - 24px);bottom:12px;gap:12px}
+    body{padding-bottom:150px}
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">CXE Bulk Mailer <span class="stamp">FLIPP INTERNAL</span></div>
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="3.2"/><path d="M3.2 6.6l8.8 6 8.8-6"/>
+    </svg>
+    Bulk Emailer <span class="stamp">CXE</span>
+  </div>
   <div class="spacer"></div>
   <div class="gmail-chip">
-    <span class="dot" id="gmailDot"></span>
-    <span id="gmailStatus">Gmail not connected</span>
+    <span class="status-pill"><span class="dot" id="gmailDot"></span><span id="gmailStatus">Gmail not connected</span></span>
     <button class="chipbtn cta" id="connectBtn">Connect Gmail</button>
     <button class="chipbtn" id="disconnectBtn" style="display:none">Disconnect</button>
   </div>
@@ -179,7 +364,7 @@
   <!-- ============ CONTACTS ============ -->
   <section class="card full">
     <div class="head-row">
-      <h2>1 · Contact list</h2>
+      <h2>Contacts</h2>
       <span class="counts" id="listCounts"></span>
       <span class="spacer"></span>
       <span class="counts" id="savedAs"></span>
@@ -188,19 +373,19 @@
     </div>
 
     <div class="toolbar">
-      <button class="btn solid" id="uploadBtn">📄 Import .xlsx / .csv</button>
+      <button class="btn solid" id="uploadBtn">Import file</button>
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
-      <button class="btn" id="templateBtn">Download template</button>
-      <button class="btn" id="exportBtn">Export list as .xlsx</button>
+      <button class="btn" id="templateBtn">Get template</button>
+      <button class="btn" id="exportBtn">Export list</button>
       <span style="flex:1"></span>
       <select id="savedLists" style="width:auto;min-width:150px;padding:5px 8px;font-size:12.5px"><option value="">Saved lists…</option></select>
-      <button class="btn" id="saveListBtn">💾 Save list</button>
+      <button class="btn" id="saveListBtn">Save list</button>
       <button class="btn ghost-danger" id="deleteListBtn">Delete saved</button>
     </div>
 
     <div class="drop" id="dropZone">
-      Drop an <b>.xlsx</b> or <b>.csv</b> here (or click) — columns: <b>Email(s)</b>, <b>Name</b>, <b>Notes</b>.
-      Comma-separated addresses on one row go out as one email (first is To, rest are CC).
+      <b>Drop an .xlsx or .csv here, or click to browse</b>
+      <span>Columns: Email(s), Name, Notes. Commas on one row send one email — first address is To, the rest CC.</span>
     </div>
 
     <div class="tablewrap" id="contactTableWrap"></div>
@@ -214,13 +399,13 @@
   <!-- ============ COMPOSE ============ -->
   <section class="card">
     <div class="head-row">
-      <h2>2 · Compose</h2>
+      <h2>Message</h2>
       <span class="counts" id="tplStatus"></span>
       <span class="spacer"></span>
       <select id="savedTpls" style="width:auto;min-width:150px;padding:5px 8px;font-size:12.5px">
         <option value="">Saved templates…</option>
       </select>
-      <button class="btn" id="saveTplBtn">💾 Save template</button>
+      <button class="btn" id="saveTplBtn">Save template</button>
       <button class="btn ghost-danger" id="deleteTplBtn">Delete saved</button>
     </div>
     <div class="fieldrow">
@@ -235,18 +420,17 @@
     </div>
     <label for="body">Message</label>
     <textarea id="body" placeholder="Write like you'd write an email. Line breaks are kept."></textarea>
-    <div class="hint">To personalize, type <code>{{name}}</code> where a contact&rsquo;s name should appear — it&rsquo;s
-      replaced with each contact&rsquo;s Name before sending (or "there" if that cell is blank). Run a dry run to
-      preview the exact greeting each contact will receive before anything goes out.</div>
+    <div class="hint">Type <code>{{name}}</code> anywhere to personalize — it becomes each contact&rsquo;s name
+      (or &ldquo;there&rdquo; if blank). Run a dry run to see the exact greeting each contact will get.</div>
   </section>
 
   <!-- ============ RECENT SENDS ============ -->
   <section class="card">
     <div class="head-row">
-      <h2>3 · Recent sends</h2>
-      <span class="counts" id="logScope">stored in this browser</span>
+      <h2>Activity</h2>
+      <span class="counts" id="logScope">Stored on this device</span>
       <span class="spacer"></span>
-      <button class="btn" id="downloadLogBtn">⬇ Download send log</button>
+      <button class="btn" id="downloadLogBtn">Download log</button>
       <button class="btn-link" id="clearLogBtn">Clear history</button>
     </div>
     <div id="logBody"><div class="empty">No sends yet.</div></div>
@@ -340,7 +524,7 @@ function manifest(){
 function renderTable(){
   var wrap = $('contactTableWrap');
   if(!state.rows.length){
-    wrap.innerHTML = '<div class="empty">No contacts yet — import a file, load a saved list, or add rows by hand.</div>';
+    wrap.innerHTML = '<div class="empty">No contacts yet.<br>Import a file, load a saved list, or add a row.</div>';
     updateCounts(); updateSendBar(); return;
   }
   var m = manifest();
@@ -372,11 +556,11 @@ function renderTable(){
     html += '<tr class="'+(bad?'bad ':'')+(excluded?'excluded':'')+'">'+
       '<td class="static chkcol"><input type="checkbox" class="rowchk" data-chk="'+i+'"'+(excluded?'':' checked')+' title="'+(excluded?'Excluded — will NOT receive this email':'Included in the send')+'"></td>'+
       '<td class="static" style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">'+(i+1)+'</td>'+
-      '<td class="emailcol"><input data-i="'+i+'" data-f="emails" value="'+esc(r.emails)+'" placeholder="a@acme.com, b@acme.com">'+
+      '<td class="emailcol"><input data-i="'+i+'" data-f="emails" value="'+esc(r.emails)+'" placeholder="name@retailer.com">'+
         (bad?'<div class="issue">'+esc(mr.issues.join('; '))+'</div>':'')+
         (mr && mr.cc.length?'<div class="cc-note">1 To + '+mr.cc.length+' CC — same thread</div>':'')+'</td>'+
-      '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="Name (optional)"></td>'+
-      '<td><input data-i="'+i+'" data-f="notes" value="'+esc(r.notes)+'" placeholder="optional"></td>'+
+      '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="—"></td>'+
+      '<td><input data-i="'+i+'" data-f="notes" value="'+esc(r.notes)+'" placeholder="—"></td>'+
       '<td class="static"><button class="rowdel" data-del="'+i+'" title="Remove row">✕</button></td></tr>';
   });
   if(!shown){
@@ -419,7 +603,7 @@ function updateCounts(){
       (m.duplicates?' · <span class="result-bad">'+m.duplicates+' duplicate</span>':'')+
       (m.invalid?' · <span class="result-bad">'+m.invalid+' invalid</span>':'')
     : '';
-  $('savedAs').textContent = state.listName ? 'list: '+state.listName : '';
+  $('savedAs').innerHTML = state.listName ? '<span class="namechip">'+esc(state.listName)+'</span>' : '';
 }
 
 $('contactTableWrap').addEventListener('input', function(e){
@@ -576,7 +760,7 @@ $('saveTplBtn').onclick = function(){
   var tpls = load('bm_templates', {});
   tpls[name.trim()] = { subject:subject, body:body, replyTo:$('replyTo').value.trim() };
   store('bm_templates', tpls);
-  refreshTemplates(); $('tplStatus').textContent = 'template: '+name.trim();
+  refreshTemplates(); $('tplStatus').innerHTML = '<span class="namechip">'+esc(name.trim())+'</span>';
   toast('Saved template "'+name.trim()+'" in this browser.');
 };
 $('savedTpls').addEventListener('change', function(){
@@ -588,7 +772,7 @@ $('savedTpls').addEventListener('change', function(){
     $('subject').value = t.subject || '';
     $('body').value = t.body || '';
     $('replyTo').value = t.replyTo || '';
-    $('tplStatus').textContent = 'template: '+name;
+    $('tplStatus').innerHTML = '<span class="namechip">'+esc(name)+'</span>';
     toast(isBuiltin
       ? 'Loaded "'+name+'" — fill in every [bracketed] placeholder before sending.'
       : 'Loaded "'+name+'" — remember to update any dates before sending.');
@@ -602,7 +786,7 @@ $('deleteTplBtn').onclick = function(){
   var name = prompt('Delete which saved template?\n\n'+names.join('\n'));
   if(!name || !tpls[name.trim()]) return;
   delete tpls[name.trim()]; store('bm_templates', tpls); refreshTemplates();
-  $('tplStatus').textContent = '';
+  $('tplStatus').innerHTML = '';
   toast('Deleted "'+name.trim()+'".');
 };
 
@@ -778,7 +962,7 @@ function logEntries(entries){
 }
 function renderLog(){
   var log = load('bm_sendlog', []).slice(-30).reverse();
-  if(!log.length){ $('logBody').innerHTML='<div class="empty">Nothing sent from this browser yet. Dry-run previews and sent emails will appear here.</div>'; return; }
+  if(!log.length){ $('logBody').innerHTML='<div class="empty">Nothing sent yet.<br>Dry-run previews and sent emails appear here.</div>'; return; }
   var html='<table><thead><tr><th>Recipient</th><th>Time</th><th>Status</th></tr></thead><tbody>';
   log.forEach(function(e){
     var ok = e.status==='Sent', dry = e.mode==='DRY';
@@ -804,7 +988,7 @@ $('downloadLogBtn').onclick = function(){
   XLSX.writeFile(wb, 'BulkMailer_SendLog.xlsx');
 };
 $('clearLogBtn').onclick = function(){
-  if(confirm('Clear the send history stored in this browser? Consider downloading the log first.')){ store('bm_sendlog', []); renderLog(); }
+  if(confirm('Clear the send history Stored on this device? Consider downloading the log first.')){ store('bm_sendlog', []); renderLog(); }
 };
 
 /* ---------------- send bar ---------------- */
