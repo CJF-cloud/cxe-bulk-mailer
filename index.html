@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CXE Bulk Mailer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -197,8 +195,8 @@
     color:var(--ink-3);text-align:left;padding:9px 10px;white-space:nowrap;
     border-bottom:1px solid var(--hairline);background:var(--surface);
   }
-  td{padding:0;border-bottom:1px solid var(--hairline-2);vertical-align:top}
-  td.static{padding:11px 10px}
+  td{padding:0;border-bottom:1px solid var(--hairline-2);vertical-align:middle}
+  td.static{padding:10px}
   tbody tr{transition:background .14s}
   tbody tr:hover{background:#FAFAFB}
   tbody tr:last-child td{border-bottom:none}
@@ -220,16 +218,21 @@
     border-radius:var(--r-sm);padding:7px 9px;width:100%;min-width:90px;
   }
   th.chkcol,td.chkcol{width:40px;text-align:center}
-  td.chkcol{padding:13px 4px 0}
+  td.chkcol{padding:0 4px}
   input[type=checkbox].rowchk,#chkAll{
     width:16px;height:16px;accent-color:var(--accent);cursor:pointer;
   }
+  td.actcol{width:44px;text-align:center;padding:0}
   .rowdel{
-    border:none;background:none;color:var(--ink-3);font-size:15px;padding:10px 11px;
-    border-radius:var(--r-sm);transition:color .15s, background .15s;line-height:1;
+    border:none;background:none;color:var(--ink-3);font-size:14px;
+    width:28px;height:28px;border-radius:50%;line-height:1;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:color .15s, background .15s;opacity:0;
   }
+  tbody tr:hover .rowdel{opacity:1}
   .rowdel:hover{color:var(--red);background:#FFEFEE}
-  .issue{color:var(--red-deep);font-size:11.5px;font-weight:500;padding:0 10px 7px}
+  .rowdel:focus-visible{opacity:1}
+  .issue{color:var(--red-deep);font-size:11.5px;font-weight:500;padding:0 10px 8px}
   .cc-note{font-size:11.5px;color:var(--ink-3);padding:0 10px 7px}
   .counts{font-size:13px;color:var(--ink-2);letter-spacing:-.005em}
   .counts b{color:var(--ink);font-weight:600}
@@ -245,6 +248,134 @@
   .result-ok{color:#248A3D;font-weight:500}
   .result-bad{color:var(--red-deep);font-weight:500}
   .result-dry{color:#B25F00;font-weight:500}
+
+  /* ---------- filter bar (replaces in-table filter row) ---------- */
+  .filterbar{
+    display:none;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--sunken);border-radius:var(--r-md);padding:10px 12px;margin-bottom:14px;
+  }
+  .filterbar.on{display:flex}
+  .searchwrap{position:relative;flex:1;min-width:220px}
+  .searchwrap svg{
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    width:14px;height:14px;color:var(--ink-3);pointer-events:none;
+  }
+  .filterbar input{
+    background:var(--surface);border:1px solid transparent;border-radius:var(--r-sm);
+    padding:8px 30px 8px 32px;font-size:13.5px;width:100%;
+  }
+  .clearq{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    border:none;background:none;color:var(--ink-3);font-size:15px;line-height:1;
+    padding:4px 6px;border-radius:50%;display:none;
+  }
+  .clearq.on{display:block}
+  .clearq:hover{color:var(--ink);background:rgba(0,0,0,.05)}
+  .seg{
+    display:inline-flex;background:rgba(120,120,128,.12);border-radius:9px;padding:2px;gap:2px;
+  }
+  .seg button{
+    border:none;background:none;border-radius:7px;padding:5px 12px;
+    font-size:12.5px;font-weight:500;color:var(--ink-2);
+    transition:background .18s var(--ease), color .18s;white-space:nowrap;
+  }
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{
+    background:var(--surface);color:var(--ink);font-weight:600;
+    box-shadow:0 1px 3px rgba(0,0,0,.10);
+  }
+  .filtercount{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
+  .bulkrow{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    width:100%;padding-top:10px;margin-top:2px;border-top:1px solid var(--hairline);
+  }
+  .bulklabel{font-size:12.5px;color:var(--ink-3);margin-right:2px}
+  .bulkrow .btn{background:var(--surface)}
+  .bulkrow .btn:hover{background:#EFEFF1}
+  td.cccol input{font-size:13px}
+  .ccpill{
+    display:inline-block;background:var(--accent-wash);color:var(--accent);
+    border-radius:var(--r-pill);padding:2px 9px;font-size:11.5px;font-weight:500;
+    margin:0 0 6px 10px;
+  }
+  .people{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+  .people button{
+    border:none;background:var(--sunken);color:var(--ink);border-radius:var(--r-pill);
+    padding:6px 12px;font-size:12.5px;font-weight:500;
+  }
+  .people button:hover{background:var(--accent-wash);color:var(--accent)}
+
+  /* ---------- attachments ---------- */
+  .attachrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .filechip{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--sunken);border-radius:var(--r-pill);padding:6px 8px 6px 12px;
+    font-size:12.5px;color:var(--ink);max-width:290px;
+  }
+  .filechip .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .filechip .fsize{color:var(--ink-3);flex:none}
+  .filechip button{
+    border:none;background:rgba(120,120,128,.18);color:var(--ink-2);
+    width:18px;height:18px;border-radius:50%;font-size:11px;line-height:1;flex:none;
+    display:inline-flex;align-items:center;justify-content:center;
+  }
+  .filechip button:hover{background:var(--red);color:#fff}
+  .sizewarn{font-size:12px;color:#B25F00;font-weight:500}
+
+  /* ---------- sheet / modal ---------- */
+  .scrim{
+    position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.28);
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    animation:scrimIn .22s var(--ease);
+  }
+  @keyframes scrimIn{from{opacity:0}to{opacity:1}}
+  .sheet{
+    background:var(--surface);border-radius:20px;width:min(440px,100%);
+    max-height:min(560px,86vh);display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 24px 60px -12px rgba(0,0,0,.4);
+    animation:sheetIn .28s var(--ease);
+  }
+  @keyframes sheetIn{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .sheet header{
+    position:static;display:block;padding:18px 20px 14px;border-bottom:1px solid var(--hairline);
+    background:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .sheet h3{font-size:16px;font-weight:600;letter-spacing:-.02em;margin:0}
+  .sheet .sub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+  .sheet .rows{overflow-y:auto;padding:8px 10px}
+  .sheetrow{
+    display:flex;align-items:center;gap:10px;padding:11px 10px;border-radius:var(--r-md);
+    transition:background .15s;
+  }
+  .sheetrow:hover{background:var(--sunken)}
+  .sheetrow .nm{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sheetrow .meta{font-size:12px;color:var(--ink-3);flex:none}
+  .sheetrow .del{
+    border:none;background:none;color:var(--ink-3);font-size:13px;font-weight:500;
+    padding:5px 11px;border-radius:var(--r-pill);flex:none;
+  }
+  .sheetrow .del:hover{background:#FFEFEE;color:var(--red-deep)}
+  .sheetrow .del.confirm{background:var(--red);color:#fff}
+  .sheet footer{
+    padding:14px 20px;border-top:1px solid var(--hairline);
+    display:flex;align-items:center;gap:10px;justify-content:flex-end;
+  }
+  .sheet .body{padding:18px 20px}
+  .sheet input[type=datetime-local]{
+    width:100%;background:var(--sunken);border:1px solid transparent;border-radius:var(--r-md);
+    padding:11px 13px;font-size:14.5px;font-family:var(--sans);color:var(--ink);
+  }
+  .sheet input[type=datetime-local]:focus{outline:none;background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,113,227,.16)}
+  .notebox{
+    background:#FFF8E6;border-radius:var(--r-md);padding:12px 14px;
+    font-size:12.5px;line-height:1.5;color:#7A5B12;margin-top:14px;
+  }
+  .notebox b{color:#5E4409}
+
+  /* ---------- schedule state in dock ---------- */
+  .sendbar.armed{background:rgba(255,251,240,.92);box-shadow:var(--shadow-dock), inset 0 0 0 1.5px rgba(255,159,10,.5)}
+  .countdown{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;color:#8A5A00}
 
   /* ============================================================
      Send dock — the safety-critical control, so it gets the polish
@@ -277,6 +408,8 @@
     background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
     transition:transform .3s var(--ease);
   }
+  .sendbar.armed .switch{background:var(--amber)}
+  .sendbar.armed .switch::after{transform:translateX(20px)}
   .sendbar.live .switch{background:var(--red)}
   .sendbar.live .switch::after{transform:translateX(20px)}
   .guard:focus-within .switch{box-shadow:0 0 0 4px rgba(0,113,227,.22)}
@@ -380,14 +513,36 @@
       <span style="flex:1"></span>
       <select id="savedLists" style="width:auto;min-width:150px;padding:5px 8px;font-size:12.5px"><option value="">Saved lists…</option></select>
       <button class="btn" id="saveListBtn">Save list</button>
-      <button class="btn ghost-danger" id="deleteListBtn">Delete saved</button>
+      <button class="btn" id="deleteListBtn">Manage lists</button>
     </div>
 
     <div class="drop" id="dropZone">
       <b>Drop an .xlsx or .csv here, or click to browse</b>
-      <span>Columns: Email(s), Name, Notes. Commas on one row send one email — first address is To, the rest CC.</span>
+      <span>Columns: Email(s), CC, Name, Notes. Commas on one row send one email — first address is To, the rest CC.</span>
     </div>
 
+    <div class="filterbar" id="filterBar">
+      <div class="searchwrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/><path d="M20 20l-4.3-4.3"/>
+        </svg>
+        <input type="text" id="fSearch" placeholder="Search emails, names, or notes" autocomplete="off">
+        <button class="clearq" id="clearQ" title="Clear search" aria-label="Clear search">&times;</button>
+      </div>
+      <div class="seg" id="showSeg">
+        <button data-show="all" class="on">All</button>
+        <button data-show="selected">Selected</button>
+        <button data-show="excluded">Excluded</button>
+        <button data-show="issues">Issues</button>
+      </div>
+      <span class="filtercount" id="filterCount"></span>
+      <div class="bulkrow">
+        <span class="bulklabel">Apply to rows shown:</span>
+        <button class="btn" id="bulkCcBtn">Set CC…</button>
+        <button class="btn" id="bulkCcClear">Clear CC</button>
+        <button class="btn" id="bulkOnlyBtn">Send to these only</button>
+      </div>
+    </div>
     <div class="tablewrap" id="contactTableWrap"></div>
     <div class="toolbar" style="margin:10px 0 0">
       <button class="btn" id="addRowBtn">+ Add row</button>
@@ -406,7 +561,7 @@
         <option value="">Saved templates…</option>
       </select>
       <button class="btn" id="saveTplBtn">Save template</button>
-      <button class="btn ghost-danger" id="deleteTplBtn">Delete saved</button>
+      <button class="btn" id="deleteTplBtn">Manage templates</button>
     </div>
     <div class="fieldrow">
       <div>
@@ -420,6 +575,12 @@
     </div>
     <label for="body">Message</label>
     <textarea id="body" placeholder="Write like you'd write an email. Line breaks are kept."></textarea>
+    <div class="attachrow" id="attachRow">
+      <button class="btn" id="attachBtn">Attach files</button>
+      <input type="file" id="attachInput" multiple hidden>
+      <span id="attachChips" style="display:flex;gap:8px;flex-wrap:wrap"></span>
+      <span class="filtercount" id="attachTotal"></span>
+    </div>
     <div class="hint">Type <code>{{name}}</code> anywhere to personalize — it becomes each contact&rsquo;s name
       (or &ldquo;there&rdquo; if blank). Run a dry run to see the exact greeting each contact will get.</div>
   </section>
@@ -446,8 +607,11 @@
   </label>
   <div class="send-summary" id="sendSummary">—</div>
   <progress id="sendProgress" max="100" value="0" style="display:none"></progress>
+  <button class="btn" id="scheduleBtn" title="Schedule this send">Schedule</button>
   <button class="primary" id="sendBtn" disabled>Test Dry Run</button>
 </div>
+
+<div id="sheetHost"></div>
 
 <script>
 /* ==================================================================
@@ -471,8 +635,11 @@ var SEND_DELAY_MS = 700;       // gentle pacing between API calls
 /* ---------------- state ---------------- */
 var state = {
   rows: [],                    // {emails:'a@x.com, b@x.com', name:'', notes:'', include:true}
-  filters: { emails:'', name:'', notes:'' },
+  filters: { q:'', show:'all' },
   filtersOn: false,
+  attachments: [],          // {name, size, type, b64}
+  schedule: null,           // {at:ms, timer}
+  countdownTimer: null,
   listName: '',
   token: null, tokenExp: 0, userEmail: '',
   busy: false, tokenClient: null
@@ -490,15 +657,37 @@ function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
 function store(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
 function load(key, fallback){ try{ var v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
 
+/* ---------------- CC / coverage ---------------- */
+function ccList(r){
+  return String(r.cc||'').split(',').map(function(e){ return e.trim(); }).filter(String);
+}
+function rememberPerson(addr){
+  var ppl = load('bm_ccpeople', []);
+  var lower = addr.toLowerCase();
+  ppl = ppl.filter(function(p){ return p.toLowerCase() !== lower; });
+  ppl.unshift(addr);
+  store('bm_ccpeople', ppl.slice(0, 8));
+}
+
 /* ---------------- filters ---------------- */
+function rowIssues(r){
+  var raw = String(r.emails||'').trim();
+  if(!raw) return [];
+  var all = raw.split(',').map(function(e){return e.trim();}).filter(String).concat(ccList(r));
+  return all.filter(function(e){ return !isValidEmail(e); });
+}
 function rowVisible(r){
   var f = state.filters;
-  return ['emails','name','notes'].every(function(k){
-    if(!f[k]) return true;
-    return String(r[k]||'').toLowerCase().indexOf(f[k].toLowerCase()) !== -1;
-  });
+  if(f.q){
+    var hay = (String(r.emails||'')+' '+String(r.name||'')+' '+String(r.notes||'')+' '+String(r.cc||'')).toLowerCase();
+    if(hay.indexOf(f.q.toLowerCase()) === -1) return false;
+  }
+  if(f.show === 'selected' && r.include === false) return false;
+  if(f.show === 'excluded' && r.include !== false) return false;
+  if(f.show === 'issues' && !rowIssues(r).length) return false;
+  return true;
 }
-function filtersActive(){ var f=state.filters; return !!(f.emails||f.name||f.notes); }
+function filtersActive(){ return !!(state.filters.q || state.filters.show !== 'all'); }
 
 /* ---------------- parse INCLUDED rows into a manifest ---------------- */
 function manifest(){
@@ -513,8 +702,11 @@ function manifest(){
       if(!isValidEmail(e)) issues.push('Invalid: '+e);
       var k=e.toLowerCase(); if(seen[k]) dup++; seen[k]=true;
     });
-    addr += emails.length;
-    out.push({ idx:i, to:emails[0], cc:emails.slice(1), name:String(r.name||'').trim(), issues:issues });
+    var ccExtra = ccList(r);
+    ccExtra.forEach(function(e){ if(!isValidEmail(e)) issues.push('Invalid CC: '+e); });
+    var cc = emails.slice(1).concat(ccExtra);
+    addr += emails.length + ccExtra.length;
+    out.push({ idx:i, to:emails[0], cc:cc, name:String(r.name||'').trim(), issues:issues });
   });
   return { rows:out, emailCount:out.length, addressCount:addr, duplicates:dup,
            invalid:out.filter(function(r){return r.issues.length;}).length };
@@ -525,60 +717,43 @@ function renderTable(){
   var wrap = $('contactTableWrap');
   if(!state.rows.length){
     wrap.innerHTML = '<div class="empty">No contacts yet.<br>Import a file, load a saved list, or add a row.</div>';
-    updateCounts(); updateSendBar(); return;
+    updateCounts(); updateFilterUI(); updateSendBar(); return;
   }
   var m = manifest();
   var byIdx = {}; m.rows.forEach(function(r){ byIdx[r.idx]=r; });
-  var f = state.filters;
   var visIdx = [];
   state.rows.forEach(function(r,i){ if(rowVisible(r)) visIdx.push(i); });
   var allVisChecked = visIdx.length && visIdx.every(function(i){ return state.rows[i].include!==false; });
 
-  var html = '<table><thead>'+
-    '<tr><th class="chkcol"><input type="checkbox" id="chkAll" title="Include / exclude all shown rows"'+(allVisChecked?' checked':'')+'></th>'+
-    '<th style="width:34px">#</th><th>Email(s) — first is To, rest are CC</th><th>Name</th><th>Notes</th><th></th></tr>';
-  if(state.filtersOn){
-    html += '<tr class="filterrow"><td class="chkcol"></td><td></td>'+
-    '<td><input id="fEmails" placeholder="Filter emails… (e.g. @acme.com)" value="'+esc(f.emails)+'"></td>'+
-    '<td><input id="fName" placeholder="Filter names…" value="'+esc(f.name)+'"></td>'+
-    '<td><input id="fNotes" placeholder="Filter notes…" value="'+esc(f.notes)+'"></td>'+
-    '<td></td></tr>';
-  }
-  html += '</thead><tbody>';
+  var html = '<table><thead><tr>'+
+    '<th class="chkcol"><input type="checkbox" id="chkAll" title="Include or exclude every row shown"'+(allVisChecked?' checked':'')+'></th>'+
+    '<th style="width:38px">#</th><th>Email(s)</th><th>CC — coverage</th><th>Name</th><th>Notes</th><th class="actcol"></th>'+
+    '</tr></thead><tbody>';
 
   var shown = 0;
   state.rows.forEach(function(r, i){
     if(!rowVisible(r)) return;
     shown++;
-    var mr = byIdx[i];                       // undefined when excluded or empty
+    var mr = byIdx[i];
     var bad = mr && mr.issues.length;
     var excluded = r.include===false;
     html += '<tr class="'+(bad?'bad ':'')+(excluded?'excluded':'')+'">'+
-      '<td class="static chkcol"><input type="checkbox" class="rowchk" data-chk="'+i+'"'+(excluded?'':' checked')+' title="'+(excluded?'Excluded — will NOT receive this email':'Included in the send')+'"></td>'+
-      '<td class="static" style="font-family:var(--mono);font-size:12px;color:var(--ink-soft)">'+(i+1)+'</td>'+
+      '<td class="chkcol"><input type="checkbox" class="rowchk" data-chk="'+i+'"'+(excluded?'':' checked')+' title="'+(excluded?'Excluded from this send':'Included in this send')+'"></td>'+
+      '<td class="static" style="color:var(--ink-3);font-size:12.5px">'+(i+1)+'</td>'+
       '<td class="emailcol"><input data-i="'+i+'" data-f="emails" value="'+esc(r.emails)+'" placeholder="name@retailer.com">'+
         (bad?'<div class="issue">'+esc(mr.issues.join('; '))+'</div>':'')+
         (mr && mr.cc.length?'<div class="cc-note">1 To + '+mr.cc.length+' CC — same thread</div>':'')+'</td>'+
+      '<td class="cccol"><input data-i="'+i+'" data-f="cc" value="'+esc(r.cc||'')+'" placeholder="—"></td>'+
       '<td><input data-i="'+i+'" data-f="name" value="'+esc(r.name)+'" placeholder="—"></td>'+
       '<td><input data-i="'+i+'" data-f="notes" value="'+esc(r.notes)+'" placeholder="—"></td>'+
-      '<td class="static"><button class="rowdel" data-del="'+i+'" title="Remove row">✕</button></td></tr>';
+      '<td class="actcol"><button class="rowdel" data-del="'+i+'" title="Remove row" aria-label="Remove row">&times;</button></td></tr>';
   });
   if(!shown){
-    html += '<tr><td colspan="6" class="static"><div class="empty">No rows match the filters. '+
-      '<button class="btn-link" id="noMatchClear">Clear filters</button></div></td></tr>';
+    html += '<tr><td colspan="6" class="static"><div class="empty">No rows match this filter.<br>'+
+      '<button class="btn-link" id="noMatchClear">Reset filter</button></div></td></tr>';
   }
   wrap.innerHTML = html + '</tbody></table>';
 
-  // wire filter inputs (re-created on each render)
-  [['fEmails','emails'],['fName','name'],['fNotes','notes']].forEach(function(p){
-    var el = $(p[0]); if(!el) return;
-    el.addEventListener('input', function(){
-      state.filters[p[1]] = this.value;
-      var pos = this.selectionStart, id = p[0];
-      renderTable();
-      var again = $(id); if(again){ again.focus(); again.setSelectionRange(pos,pos); }
-    });
-  });
   var chkAll = $('chkAll');
   if(chkAll) chkAll.addEventListener('change', function(){
     var on = this.checked;
@@ -586,20 +761,95 @@ function renderTable(){
     renderTable();
   });
   var nmc = $('noMatchClear');
-  if(nmc) nmc.addEventListener('click', function(){ state.filters={emails:'',name:'',notes:''}; renderTable(); });
+  if(nmc) nmc.addEventListener('click', resetFilters);
 
-  updateCounts(); updateSendBar();
+  updateCounts(); updateFilterUI(); updateSendBar();
 }
+
+/* ---------------- filter bar wiring (bound once) ---------------- */
+function updateFilterUI(){
+  $('filterBar').classList.toggle('on', state.filtersOn);
+  $('filterToggle').classList.toggle('active', state.filtersOn || filtersActive());
+  $('clearQ').classList.toggle('on', !!state.filters.q);
+  Array.prototype.forEach.call($('showSeg').children, function(b){
+    b.classList.toggle('on', b.dataset.show === state.filters.show);
+  });
+  var total = state.rows.filter(function(r){ return String(r.emails||'').trim(); }).length;
+  var shown = state.rows.filter(rowVisible).length;
+  $('filterCount').textContent = filtersActive() ? ('Showing ' + shown + ' of ' + total) : '';
+}
+function resetFilters(){
+  state.filters = { q:'', show:'all' };
+  $('fSearch').value = '';
+  renderTable();
+}
+$('fSearch').addEventListener('input', function(){ state.filters.q = this.value; renderTable(); });
+$('clearQ').addEventListener('click', function(){ state.filters.q=''; $('fSearch').value=''; renderTable(); $('fSearch').focus(); });
+function shownRows(){ return state.rows.filter(rowVisible); }
+$('bulkCcBtn').onclick = function(){
+  var rows = shownRows();
+  if(!rows.length) return toast('No rows are shown — adjust the filter first.', true);
+  var ppl = load('bm_ccpeople', []);
+  var existing = rows[0] && rows[0].cc ? rows[0].cc : '';
+  openSheet(
+    '<header><h3>CC on '+rows.length+' row'+(rows.length>1?'s':'')+'</h3>'+
+    '<div class="sub">Adds a coverage person to every row currently shown. Retailers will see them on the email.</div></header>'+
+    '<div class="body"><label for="ccInput">Coverage email</label>'+
+    '<input type="text" id="ccInput" value="'+esc(existing)+'" placeholder="rachel@flipp.com" autocomplete="off">'+
+    (ppl.length ? '<div class="people" id="ccPeople">'+ppl.map(function(p){
+        return '<button data-p="'+esc(p)+'">'+esc(p)+'</button>'; }).join('')+'</div>' : '')+
+    '<div class="hint" style="margin-top:12px">Separate multiple people with commas. This replaces any CC already on those rows.</div></div>'+
+    '<footer><button class="btn" id="ccCancel">Cancel</button>'+
+    '<button class="btn solid" id="ccApply">Apply CC</button></footer>'
+  );
+  $('ccCancel').addEventListener('click', closeSheet);
+  var pplEl = $('ccPeople');
+  if(pplEl) pplEl.addEventListener('click', function(e){
+    var p = e.target.dataset && e.target.dataset.p;
+    if(p){ $('ccInput').value = p; }
+  });
+  $('ccApply').addEventListener('click', function(){
+    var v = $('ccInput').value.trim();
+    var parts = v.split(',').map(function(s){ return s.trim(); }).filter(String);
+    var bad = parts.filter(function(p){ return !isValidEmail(p); });
+    if(bad.length) return toast('“'+bad[0]+'” doesn\u2019t look like a valid email.', true);
+    var n = 0;
+    state.rows.forEach(function(r){ if(rowVisible(r)){ r.cc = parts.join(', '); n++; } });
+    parts.forEach(rememberPerson);
+    closeSheet(); renderTable();
+    toast(parts.length ? ('CC set on '+n+' row'+(n>1?'s':'')+'.') : ('CC cleared on '+n+' row'+(n>1?'s':'')+'.'));
+  });
+};
+$('bulkCcClear').onclick = function(){
+  var n = 0;
+  state.rows.forEach(function(r){ if(rowVisible(r) && r.cc){ r.cc=''; n++; } });
+  renderTable();
+  toast(n ? ('CC cleared on '+n+' row'+(n>1?'s':'')+'.') : 'No CC to clear on the rows shown.');
+};
+$('bulkOnlyBtn').onclick = function(){
+  var vis = 0, off = 0;
+  state.rows.forEach(function(r){
+    if(rowVisible(r)){ r.include = true; vis++; }
+    else if(r.include !== false){ r.include = false; off++; }
+  });
+  renderTable();
+  toast(vis+' row'+(vis>1?'s':'')+' will send'+(off?'; '+off+' other'+(off>1?'s':'')+' excluded.':'.'));
+};
+$('showSeg').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  state.filters.show = b.dataset.show; renderTable();
+});
 
 function updateCounts(){
   var m = manifest();
   var total = state.rows.filter(function(r){ return String(r.emails||'').trim(); }).length;
   var excluded = total - m.emailCount;
-  var hidden = state.rows.filter(function(r){ return !rowVisible(r); }).length;
+
   $('listCounts').innerHTML = total
     ? '<b>'+m.emailCount+'</b> of '+total+' emails selected · <b>'+m.addressCount+'</b> addresses'+
       (excluded?' · <span class="result-dry">'+excluded+' excluded</span>':'')+
-      (hidden?' · '+hidden+' hidden by filters':'')+
+      (function(){ var n = state.rows.filter(function(r){ return r.include!==false && ccList(r).length; }).length;
+                   return n ? ' · '+n+' with CC' : ''; })()+
       (m.duplicates?' · <span class="result-bad">'+m.duplicates+' duplicate</span>':'')+
       (m.invalid?' · <span class="result-bad">'+m.invalid+' invalid</span>':'')
     : '';
@@ -624,18 +874,12 @@ $('contactTableWrap').addEventListener('click', function(e){
   var d = e.target.dataset && e.target.dataset.del;
   if(d!==undefined && d!==null && d!==''){ state.rows.splice(+d,1); renderTable(); }
 });
-$('addRowBtn').onclick = function(){ state.rows.push({emails:'',name:'',notes:'',include:true}); renderTable();
+$('addRowBtn').onclick = function(){ state.rows.push({emails:'',cc:'',name:'',notes:'',include:true}); renderTable();
   var ins=$('contactTableWrap').querySelectorAll('input[data-f=emails]'); ins[ins.length-1] && ins[ins.length-1].focus(); };
 $('filterToggle').onclick = function(){
   state.filtersOn = !state.filtersOn;
-  if(!state.filtersOn) state.filters = {emails:'',name:'',notes:''}; // turning the funnel off clears filters, like Sheets
-  this.classList.toggle('active', state.filtersOn);
-  renderTable();
-  if(state.filtersOn){ var fe=$('fEmails'); fe && fe.focus(); }
-};
-$('clearBtn').onclick = function(){
-  if(state.rows.length && !confirm('Clear the current list? (Saved lists are untouched.)')) return;
-  state.rows=[]; state.listName=''; renderTable();
+  if(!state.filtersOn) resetFilters();
+  else { updateFilterUI(); $('fSearch').focus(); }
 };
 
 /* ---------------- import / export ---------------- */
@@ -652,13 +896,15 @@ function handleFile(file){
       var eCol = head.findIndex(function(h){ return /email/.test(h); });
       var nCol = head.findIndex(function(h){ return /name/.test(h); });
       var oCol = head.findIndex(function(h){ return /note/.test(h); });
+      var cCol = head.findIndex(function(h){ return /^cc|coverage|covering/.test(h); });
       var start = (eCol>=0||nCol>=0) ? 1 : 0;
       if(eCol<0) eCol=0; if(nCol<0) nCol=1; if(oCol<0) oCol=2;
       var rows=[];
       for(var i=start;i<json.length;i++){
         var em = String(json[i][eCol]||'').trim();
         if(!em) continue;
-        rows.push({ emails:em, name:String(json[i][nCol]||'').trim(), notes:String(json[i][oCol]||'').trim(), include:true });
+        rows.push({ emails:em, cc: cCol>=0 ? String(json[i][cCol]||'').trim() : '',
+                    name:String(json[i][nCol]||'').trim(), notes:String(json[i][oCol]||'').trim(), include:true });
       }
       if(!rows.length){ toast('No rows with emails found. Is the Email column filled?', true); return; }
       state.rows = rows; state.listName = file.name.replace(/\.(xlsx|xls|csv)$/i,'');
@@ -678,19 +924,19 @@ dz.addEventListener('drop', function(e){ if(e.dataTransfer.files[0]) handleFile(
 
 $('templateBtn').onclick = function(){
   var ws = XLSX.utils.aoa_to_sheet([
-    ['Email(s)','Name','Notes'],
-    ['buyer@acme.com','Sam',''],
-    ['a@acme.com, b@acme.com, c@acme.com','Acme team','These 3 get ONE email and see each other'],
-    ['solo@retailer.com','Priya','Separate row = separate email']
+    ['Email(s)','CC','Name','Notes'],
+    ['buyer@acme.com','','Sam',''],
+    ['a@acme.com, b@acme.com, c@acme.com','','Acme team','These 3 get ONE email and see each other'],
+    ['solo@retailer.com','rachel@flipp.com','Priya','CC = coverage person for this account']
   ]);
-  ws['!cols']=[{wch:42},{wch:16},{wch:44}];
+  ws['!cols']=[{wch:42},{wch:22},{wch:16},{wch:44}];
   var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
   XLSX.writeFile(wb, 'BulkMailer_Template.xlsx');
 };
 $('exportBtn').onclick = function(){
   if(!state.rows.length){ toast('Nothing to export yet.', true); return; }
-  var aoa = [['Email(s)','Name','Notes']].concat(state.rows.map(function(r){ return [r.emails,r.name,r.notes]; }));
-  var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:42},{wch:16},{wch:44}];
+  var aoa = [['Email(s)','CC','Name','Notes']].concat(state.rows.map(function(r){ return [r.emails,r.cc||'',r.name,r.notes]; }));
+  var ws = XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:42},{wch:22},{wch:16},{wch:44}];
   var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Contacts');
   XLSX.writeFile(wb, (state.listName||'contact-list')+'.xlsx');
 };
@@ -719,15 +965,6 @@ $('savedLists').addEventListener('change', function(){
   if(lists[this.value]){ state.rows = JSON.parse(JSON.stringify(lists[this.value])); state.listName=this.value; renderTable(); }
   this.value='';
 });
-$('deleteListBtn').onclick = function(){
-  var lists = load('bm_lists', {});
-  var names = Object.keys(lists);
-  if(!names.length){ toast('No saved lists to delete.', true); return; }
-  var name = prompt('Delete which saved list?\n\n'+names.join('\n'));
-  if(!name || !lists[name.trim()]) return;
-  delete lists[name.trim()]; store('bm_lists', lists); refreshSaved();
-  toast('Deleted "'+name.trim()+'".');
-};
 
 /* ---------------- saved message templates (this browser) ---------------- */
 var DEFAULT_TEMPLATES = {
@@ -779,16 +1016,116 @@ $('savedTpls').addEventListener('change', function(){
   }
   this.value='';
 });
-$('deleteTplBtn').onclick = function(){
-  var tpls = load('bm_templates', {});
-  var names = Object.keys(tpls);
-  if(!names.length){ toast('No saved templates to delete.', true); return; }
-  var name = prompt('Delete which saved template?\n\n'+names.join('\n'));
-  if(!name || !tpls[name.trim()]) return;
-  delete tpls[name.trim()]; store('bm_templates', tpls); refreshTemplates();
-  $('tplStatus').innerHTML = '';
-  toast('Deleted "'+name.trim()+'".');
-};
+
+
+/* ---------------- sheets (modal) ---------------- */
+function closeSheet(){ $('sheetHost').innerHTML=''; document.removeEventListener('keydown', sheetEsc); }
+function sheetEsc(e){ if(e.key==='Escape') closeSheet(); }
+function openSheet(html){
+  $('sheetHost').innerHTML = '<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">'+html+'</div></div>';
+  document.addEventListener('keydown', sheetEsc);
+  $('scrim').addEventListener('click', function(e){ if(e.target === this) closeSheet(); });
+}
+
+/* ---------------- manage saved lists / templates ---------------- */
+function openManage(kind){
+  var isList = kind==='list';
+  var store_key = isList ? 'bm_lists' : 'bm_templates';
+  var items = load(store_key, {});
+  var names = Object.keys(items).sort();
+  var rows = names.length ? names.map(function(n){
+    var meta = isList ? (items[n].length + (items[n].length===1?' contact':' contacts'))
+                      : ((items[n].subject||'').slice(0,34) || 'No subject');
+    return '<div class="sheetrow" data-n="'+esc(n)+'">'+
+      '<span class="nm">'+esc(n)+'</span>'+
+      '<span class="meta">'+esc(meta)+'</span>'+
+      '<button class="btn" data-load="'+esc(n)+'">Load</button>'+
+      '<button class="del" data-del="'+esc(n)+'">Delete</button></div>';
+  }).join('') : '<div class="empty">Nothing saved yet.<br>Use “Save '+(isList?'list':'template')+'” to keep one for next time.</div>';
+
+  openSheet(
+    '<header><h3>'+(isList?'Saved lists':'Saved templates')+'</h3>'+
+    '<div class="sub">Load one, or delete what you no longer need. Stored on this device.</div></header>'+
+    '<div class="rows" id="mrows">'+rows+'</div>'+
+    '<footer><button class="btn" id="sheetClose">Done</button></footer>'
+  );
+  $('sheetClose').addEventListener('click', closeSheet);
+  $('mrows').addEventListener('click', function(e){
+    var t = e.target;
+    var ln = t.dataset && t.dataset.load, dn = t.dataset && t.dataset.del;
+    if(ln){
+      var cur = load(store_key, {});
+      if(isList && cur[ln]){ state.rows = JSON.parse(JSON.stringify(cur[ln])); state.listName = ln; renderTable(); }
+      if(!isList && cur[ln]){
+        var tp = cur[ln];
+        $('subject').value = tp.subject||''; $('body').value = tp.body||''; $('replyTo').value = tp.replyTo||'';
+        $('tplStatus').innerHTML = '<span class="namechip">'+esc(ln)+'</span>';
+      }
+      closeSheet(); toast('Loaded “'+ln+'”.');
+      return;
+    }
+    if(dn){
+      if(t.classList.contains('confirm')){
+        var cur2 = load(store_key, {});
+        delete cur2[dn]; store(store_key, cur2);
+        if(isList){ refreshSaved(); if(state.listName===dn){ state.listName=''; updateCounts(); } }
+        else refreshTemplates();
+        t.closest('.sheetrow').remove();
+        if(!$('mrows').querySelector('.sheetrow')) openManage(kind);
+        toast('Deleted “'+dn+'”.');
+      } else {
+        Array.prototype.forEach.call($('mrows').querySelectorAll('.del'), function(b){
+          b.classList.remove('confirm'); b.textContent='Delete';
+        });
+        t.classList.add('confirm'); t.textContent='Confirm';
+      }
+    }
+  });
+}
+$('deleteListBtn').onclick = function(){ openManage('list'); };
+$('deleteTplBtn').onclick = function(){ openManage('template'); };
+
+/* ---------------- attachments ---------------- */
+var MAX_ATTACH_BYTES = 20*1024*1024;   // Gmail caps a message near 25MB once encoded
+function fmtSize(b){
+  if(b < 1024) return b+' B';
+  if(b < 1024*1024) return (b/1024).toFixed(0)+' KB';
+  return (b/1048576).toFixed(1)+' MB';
+}
+function attachTotal(){ return state.attachments.reduce(function(s,a){ return s+a.size; },0); }
+function renderAttachments(){
+  $('attachChips').innerHTML = state.attachments.map(function(a,i){
+    return '<span class="filechip"><span class="fname">'+esc(a.name)+'</span>'+
+      '<span class="fsize">'+fmtSize(a.size)+'</span>'+
+      '<button data-rm="'+i+'" title="Remove" aria-label="Remove attachment">&times;</button></span>';
+  }).join('');
+  var t = attachTotal();
+  $('attachTotal').innerHTML = state.attachments.length
+    ? (t > MAX_ATTACH_BYTES
+        ? '<span class="sizewarn">'+fmtSize(t)+' total — too large for Gmail. Remove a file.</span>'
+        : fmtSize(t)+' total, attached to every email')
+    : '';
+  updateSendBar();
+}
+$('attachBtn').onclick = function(){ $('attachInput').click(); };
+$('attachInput').addEventListener('change', function(){
+  var files = Array.prototype.slice.call(this.files);
+  this.value='';
+  files.forEach(function(f){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var b64 = String(ev.target.result).split(',')[1] || '';
+      state.attachments.push({ name:f.name, size:f.size, type:f.type||'application/octet-stream', b64:b64 });
+      renderAttachments();
+    };
+    reader.onerror = function(){ toast('Couldn\u2019t read '+f.name+'.', true); };
+    reader.readAsDataURL(f);
+  });
+});
+$('attachChips').addEventListener('click', function(e){
+  var i = e.target.dataset && e.target.dataset.rm;
+  if(i!==undefined && i!==''){ state.attachments.splice(+i,1); renderAttachments(); }
+});
 
 /* ---------------- Gmail auth (Google Identity Services) ---------------- */
 function gisReady(){ return typeof google!=='undefined' && google.accounts && google.accounts.oauth2; }
@@ -854,19 +1191,49 @@ function b64url(bytes){
 function encodeHeader(s){ // RFC 2047 for non-ASCII subjects
   return /^[\x00-\x7F]*$/.test(s) ? s : '=?UTF-8?B?'+btoa(unescape(encodeURIComponent(s)))+'?=';
 }
+function wrap76(s){ return s.replace(/(.{76})/g, '$1\r\n'); }
 function buildMime(r, subject, bodyText, replyTo){
   var html = esc(bodyText).replace(/\r?\n/g,'<br>');
-  var lines = [
+  var htmlBody = '<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5">'+html+'</div>';
+  var head = [
     'To: '+r.to,
     r.cc.length ? 'Cc: '+r.cc.join(', ') : null,
     replyTo ? 'Reply-To: '+replyTo : null,
     'Subject: '+encodeHeader(subject),
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-    '',
-    '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5">'+html+'</div>'
+    'MIME-Version: 1.0'
   ].filter(function(l){ return l!==null; });
+
+  var lines;
+  if(state.attachments.length){
+    var b = '=_cxe_'+Math.random().toString(36).slice(2)+'_'+Date.now();
+    lines = head.concat([
+      'Content-Type: multipart/mixed; boundary="'+b+'"',
+      '',
+      '--'+b,
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      htmlBody
+    ]);
+    state.attachments.forEach(function(a){
+      lines = lines.concat([
+        '--'+b,
+        'Content-Type: '+a.type+'; name="'+a.name+'"',
+        'Content-Disposition: attachment; filename="'+a.name+'"',
+        'Content-Transfer-Encoding: base64',
+        '',
+        wrap76(a.b64)
+      ]);
+    });
+    lines.push('--'+b+'--');
+  } else {
+    lines = head.concat([
+      'Content-Type: text/html; charset=UTF-8',
+      'Content-Transfer-Encoding: 8bit',
+      '',
+      htmlBody
+    ]);
+  }
   return b64url(new TextEncoder().encode(lines.join('\r\n')));
 }
 function mergeText(t, r){ return String(t).replace(/\{\{\s*name\s*\}\}/gi, r.name || 'there'); }
@@ -917,6 +1284,7 @@ async function doSend(){
       ' of '+DAILY_LIMIT+' in the last 24h (tracked in this browser). Split the list or wait.', true);
   }
 
+  if(state.schedule) clearSchedule(true);
   state.busy = true; updateSendBar();
   var prog=$('sendProgress'); prog.style.display=''; prog.max=m.rows.length; prog.value=0;
   var entries=[], sent=0, failed=0;
@@ -991,31 +1359,131 @@ $('clearLogBtn').onclick = function(){
   if(confirm('Clear the send history Stored on this device? Consider downloading the log first.')){ store('bm_sendlog', []); renderLog(); }
 };
 
+
+/* ---------------- scheduling (in-tab) ---------------- */
+function fmtClock(ms){
+  var s = Math.max(0, Math.round(ms/1000));
+  var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return (h? h+':'+String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0');
+}
+function clearSchedule(silent){
+  if(state.schedule && state.schedule.timer) clearTimeout(state.schedule.timer);
+  if(state.countdownTimer) clearInterval(state.countdownTimer);
+  state.schedule = null; state.countdownTimer = null;
+  store('bm_schedule', null);
+  $('sendbar').classList.remove('armed');
+  updateSendBar();
+  if(!silent) toast('Scheduled send cancelled.');
+}
+function armSchedule(at){
+  var delay = at - Date.now();
+  $('dryToggle').checked = false;   // a scheduled send is a live send
+  state.schedule = { at: at, timer: setTimeout(function(){
+    state.schedule = null; store('bm_schedule', null);
+    if(state.countdownTimer) clearInterval(state.countdownTimer);
+    $('sendbar').classList.remove('armed');
+    $('dryToggle').checked = false;      // scheduled sends are live by definition
+    updateSendBar();
+    doSend();
+  }, delay) };
+  store('bm_schedule', { at: at });
+  $('sendbar').classList.add('armed');
+  state.countdownTimer = setInterval(updateSendBar, 1000);
+  updateSendBar();
+}
+$('scheduleBtn').onclick = function(){
+  if(state.schedule){ clearSchedule(); return; }
+  var m = manifest();
+  if(!m.emailCount) return toast('Load some contacts first.', true);
+  if(m.invalid) return toast('Fix the '+m.invalid+' flagged row(s) before scheduling.', true);
+  if(!$('subject').value.trim() || !$('body').value.trim()) return toast('Add a subject and message before scheduling.', true);
+  var d = new Date(Date.now() + 30*60000);
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  var localVal = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  openSheet(
+    '<header><h3>Schedule this send</h3><div class="sub">'+m.emailCount+' emails to '+m.addressCount+' addresses</div></header>'+
+    '<div class="body"><label for="schedAt">Send at</label>'+
+    '<input type="datetime-local" id="schedAt" value="'+localVal+'" min="'+localVal.slice(0,10)+'T00:00">'+
+    '<div class="notebox"><b>Keep this tab open.</b> Gmail has no server-side scheduling, so the send runs from this page. '+
+    'If the tab is closed or the computer sleeps, nothing is sent — you\u2019ll be told when you reopen it, and can send then.</div></div>'+
+    '<footer><button class="btn" id="schedCancel">Cancel</button>'+
+    '<button class="btn solid" id="schedGo">Schedule send</button></footer>'
+  );
+  $('schedCancel').addEventListener('click', closeSheet);
+  $('schedGo').addEventListener('click', function(){
+    var v = $('schedAt').value;
+    if(!v) return toast('Pick a date and time.', true);
+    var at = new Date(v).getTime();
+    if(isNaN(at)) return toast('That date doesn\u2019t look valid.', true);
+    if(at <= Date.now() + 5000) return toast('Pick a time at least a minute from now.', true);
+    ensureToken().then(function(){
+      closeSheet();
+      armSchedule(at);
+      toast('Scheduled for '+new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'. Keep this tab open.');
+    }).catch(function(e){ toast(e.message, true); });
+  });
+};
+// If a schedule was pending when the tab closed, never send silently — just report it.
+(function checkMissedSchedule(){
+  var s = load('bm_schedule', null);
+  if(s && s.at){
+    store('bm_schedule', null);
+    var when = new Date(s.at);
+    setTimeout(function(){
+      toast('A send was scheduled for '+when.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+
+            ' but this tab was closed, so nothing was sent.', true);
+    }, 900);
+  }
+})();
+
 /* ---------------- send bar ---------------- */
 function updateSendBar(){
   var live = !$('dryToggle').checked;
-  var bar=$('sendbar');
-  bar.classList.toggle('live', live);
+  var bar = $('sendbar');
+  var armed = !!state.schedule;
+  bar.classList.toggle('live', live && !armed);
+  bar.classList.toggle('armed', armed);
+  var m = manifest();
+  var oversize = attachTotal() > MAX_ATTACH_BYTES;
+
+  if(armed){
+    $('guardLabel').innerHTML = '<b>Scheduled</b>Keep this tab open';
+    $('sendSummary').innerHTML = '<span class="countdown">Sending in '+fmtClock(state.schedule.at - Date.now())+'</span>'+
+      ' · '+m.emailCount+' emails'+(state.attachments.length?' · '+state.attachments.length+' attachment'+(state.attachments.length>1?'s':''):'');
+    $('scheduleBtn').textContent = 'Cancel';
+    $('sendBtn').textContent = 'Send now';
+    $('sendBtn').disabled = state.busy;
+    return;
+  }
+
   $('guardLabel').innerHTML = live
     ? '<b>Live Mode</b>Emails will send to all selected contacts'
     : '<b>Dry Run Mode</b>No emails will be sent';
-  var m = manifest();
+  $('scheduleBtn').textContent = 'Schedule';
+  $('scheduleBtn').style.display = live ? '' : 'none';
+
+  var att = state.attachments.length ? ' · '+state.attachments.length+' attachment'+(state.attachments.length>1?'s':'') : '';
   $('sendSummary').textContent = m.emailCount
-    ? m.emailCount+' emails / '+m.addressCount+' addresses'+(state.listName?' — "'+state.listName+'"':'')
+    ? m.emailCount+' emails / '+m.addressCount+' addresses'+(state.listName?' — “'+state.listName+'”':'')+att
     : 'No recipients loaded';
-  var btn=$('sendBtn');
+
+  var btn = $('sendBtn');
   btn.textContent = state.busy ? 'Sending…' : (live ? 'Send Live Run' : 'Test Dry Run');
   var connected = !!state.token && Date.now() < state.tokenExp;
-  btn.disabled = state.busy || !m.emailCount || m.invalid>0 || (live && !connected);
-  btn.title = (live && !connected) ? 'Connect Gmail first (top right)' : '';
+  btn.disabled = state.busy || !m.emailCount || m.invalid>0 || oversize || (live && !connected);
+  btn.title = oversize ? 'Attachments are too large for Gmail'
+            : (live && !connected) ? 'Connect Gmail first' : '';
 }
-$('dryToggle').addEventListener('change', updateSendBar);
+$('dryToggle').addEventListener('change', function(){
+  if(state.schedule) clearSchedule();   // flipping the guard cancels a pending schedule
+  else updateSendBar();
+});
 $('sendBtn').addEventListener('click', doSend);
 
 /* ---------------- boot ---------------- */
-renderTable(); refreshSaved(); refreshTemplates(); renderLog(); initAuth(); renderAuth(); updateSendBar();
+renderTable(); refreshSaved(); refreshTemplates(); renderLog(); renderAttachments(); initAuth(); renderAuth(); updateFilterUI(); updateSendBar();
 window.addEventListener('beforeunload', function(e){
-  if(state.busy){ e.preventDefault(); e.returnValue=''; }
+  if(state.busy || state.schedule){ e.preventDefault(); e.returnValue=''; }
 });
 </script>
 </body>
